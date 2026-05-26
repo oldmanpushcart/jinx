@@ -1,0 +1,69 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>io.github.oldmanpushcart</groupId>
+    <artifactId>jinx</artifactId>
+    <packaging>jar</packaging>
+    <version>1.0-SNAPSHOT</version>
+    <name>jinx</name>
+    <url>https://github.com/oldmanpushcart/jinx</url>
+    <licenses>
+        <license>
+            <name>Apache-2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>oldmanpushcart</id>
+            <email>oldmanpushcart@gmail.com</email>
+            <url>https://github.com/oldmanpushcart</url>
+        </developer>
+    </developers>
+    <scm>
+        <url>https://github.com/oldmanpushcart/jinx/tree/master</url>
+        <connection>scm:git:ssh://github.com/oldmanpushcart/jinx.git</connection>
+        <developerConnection>scm:git:git@github.com:oldmanpushcart/jinx.git</developerConnection>
+    </scm>
+
+    <properties>
+        <release.jdk.version>17</release.jdk.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <slf4j.version>2.0.11</slf4j.version>
+        <logback.version>1.5.29</logback.version>
+        <dashscope4j.version>4.0.0</dashscope4j.version>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>${release.jdk.version}</release>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <showDeprecation>true</showDeprecation>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.oldmanpushcart</groupId>
+            <artifactId>dashscope4j-agent</artifactId>
+            <version>${dashscope4j.version}</version>
+        </dependency>
+    </dependencies>
+</project>
