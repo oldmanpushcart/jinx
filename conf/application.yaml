@@ -1,0 +1,7 @@
+server:
+  port: 8080
+  context-path: /api/v1/agent
+  host: 0.0.0.0
+  max-threads: 200
+
+logback-config-path: conf/logback.xml
