@@ -4,33 +4,42 @@ import io.github.oldmanpushcart.dashscope4j.agent.Agent;
 import io.github.oldmanpushcart.dashscope4j.agent.typical.dashscope.DashscopeAgent;
 import io.github.oldmanpushcart.dashscope4j.client.DashscopeClient;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.ChatModel;
-import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.UserMessage;
-import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.content.Content;
-import io.github.oldmanpushcart.jinx.config.DashscopeConfig;
+import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.AssistantMessage;
+import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.Message;
+import io.github.oldmanpushcart.dashscope4j.client.api.interceptor.RetryInterceptor;
+import io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils;
+import io.github.oldmanpushcart.dashscope4j.client.util.retry.RetryStrategies;
+import io.github.oldmanpushcart.jinx.config.AgentConfig;
+import io.github.oldmanpushcart.jinx.config.Config;
 import io.github.oldmanpushcart.jinx.core.manager.AgentManager;
+import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Context;
 import jakarta.annotation.PreDestroy;
+import jakarta.inject.Singleton;
 import okhttp3.OkHttpClient;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
+@Singleton
 @Context
 public class AgentManagerImpl implements AgentManager {
 
+    private static final String DEFAULT_SESSION_ID = "default-session";
     private static final Logger log = LoggerFactory.getLogger(AgentManagerImpl.class);
 
     private Agent agent;
 
-    public AgentManagerImpl(DashscopeConfig config) {
+    public AgentManagerImpl(Config config1, AgentConfig config) {
         initialize(config);
     }
 
-    private void initialize(DashscopeConfig config) {
+    private void initialize(AgentConfig config) {
 
         final var model = Optional.ofNullable(config.model())
                 .map(m -> switch (m) {
@@ -41,11 +50,19 @@ public class AgentManagerImpl implements AgentManager {
                 .orElse(ChatModel.QWEN_FLASH);
 
         final var http = new OkHttpClient.Builder()
+                .connectTimeout(config.client().http().connectTimeout())
+                .readTimeout(config.client().http().readTimeout())
+                .writeTimeout(config.client().http().writeTimeout())
                 .build();
 
         final var client = DashscopeClient.newBuilder()
-                .ak(config.ak())
+                .ak(config.client().ak())
                 .http(http)
+                .interceptors(List.of(
+                        RetryInterceptor.newBuilder()
+                                .strategy(RetryStrategies.fixedDelay(Duration.ofSeconds(5), 5))
+                                .build()
+                ))
                 .build();
 
         this.agent = DashscopeAgent.newBuilder()
@@ -70,27 +87,25 @@ public class AgentManagerImpl implements AgentManager {
         if (agent != null) {
             try {
                 agent.close();
-                log.info("jinx://agent/destroy DashScope Agent closed successfully");
+                log.info("jinx://mgr/agent close successfully");
             } catch (Exception e) {
-                log.error("jinx://agent/destroy Failed to close DashScope Agent [error={};]", e.getMessage());
+                log.warn("jinx://mgr/agent close failed!", e);
             }
         }
     }
 
     @Override
     public Publisher<String> flow(String sessionId, String content) {
-        final String finalSessionId = (sessionId == null || sessionId.isEmpty()) ? "default-session" : sessionId;
 
-        UserMessage message = UserMessage.newBuilder()
-                .contents(List.of(Content.text(content)))
-                .build();
+        final String finalSessionId = CommonUtils.isNotBlankString(sessionId)
+                ? sessionId
+                : DEFAULT_SESSION_ID;
+
+        final var message = Message.user(content);
 
         return Flux.from(agent.flow(finalSessionId, message))
-                .map(assistantMessage -> assistantMessage.text())
-                .doOnNext(text -> log.debug("jinx://agent/chat_stream Stream output chunk [session_id={};chunk_length={};]", finalSessionId, text.length()))
-                .onErrorResume(e -> {
-                    log.error("jinx://agent/chat_stream DashScope API call failed [session_id={};error={};]", finalSessionId, e.getMessage());
-                    return Flux.error(new RuntimeException("AI service call failed: " + e.getMessage()));
-                });
+                .map(AssistantMessage::text)
+                .doOnError(ex -> log.warn("jinx://mgr/agent/{} failed!", finalSessionId, ex))
+                ;
     }
 }
