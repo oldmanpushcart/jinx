@@ -1,6 +1,9 @@
 package io.github.oldmanpushcart.jinx.config;
 
+import io.micronaut.context.annotation.ConfigurationProperties;
+
+@ConfigurationProperties("jinx")
 public record Config(
-    ServerConfig server,
-    String logbackConfigPath
-) {}
+    DashscopeConfig dashscope
+) {
+}

@@ -32,10 +32,9 @@
         <slf4j.version>2.0.11</slf4j.version>
         <logback.version>1.5.29</logback.version>
         <dashscope4j.version>4.0.0</dashscope4j.version>
-        <jetty.version>12.1.9</jetty.version>
-        <jackson.version>2.15.2</jackson.version>
-        <reflections.version>0.10.2</reflections.version>
+        <jackson.version>2.21.1</jackson.version>
         <reactor.version>3.6.0</reactor.version>
+        <micronaut.version>4.10.23</micronaut.version>
     </properties>
 
     <build>
@@ -45,16 +44,33 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
                 <configuration>
+
+                    <!-- 基础编译参数 -->
                     <release>${release.jdk.version}</release>
                     <encoding>${project.build.sourceEncoding}</encoding>
                     <showDeprecation>true</showDeprecation>
-                    <parameters>true</parameters>
+
+                    <!-- Micronaut AOT 编译必须的注解处理器 -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>io.micronaut</groupId>
+                            <artifactId>micronaut-inject-java</artifactId>
+                            <version>${micronaut.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <!-- 必须加上这个参数，否则 Micronaut 无法获取方法的参数名 -->
+                        <arg>-parameters</arg>
+                    </compilerArgs>
+
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
     <dependencies>
+
+        <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -65,22 +81,12 @@
             <artifactId>logback-classic</artifactId>
             <version>${logback.version}</version>
         </dependency>
+
+        <!-- DashScope4J -->
         <dependency>
             <groupId>io.github.oldmanpushcart</groupId>
             <artifactId>dashscope4j-agent</artifactId>
             <version>${dashscope4j.version}</version>
-        </dependency>
-        
-        <!-- Jetty Server -->
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-server</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-servlet</artifactId>
-            <version>${jetty.version}</version>
         </dependency>
         
         <!-- Jackson for JSON & YAML -->
@@ -100,11 +106,26 @@
             <version>${jackson.version}</version>
         </dependency>
         
-        <!-- Reflections for annotation scanning -->
+        <!-- Micronaut -->
         <dependency>
-            <groupId>org.reflections</groupId>
-            <artifactId>reflections</artifactId>
-            <version>${reflections.version}</version>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-inject</artifactId>
+            <version>${micronaut.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-http-server-netty</artifactId>
+            <version>${micronaut.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-json-core</artifactId>
+            <version>${micronaut.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut</groupId>
+            <artifactId>micronaut-jackson-databind</artifactId>
+            <version>${micronaut.version}</version>
         </dependency>
         
         <!-- Project Reactor (Publisher implementation) -->
