@@ -1,4 +1,4 @@
-package io.github.oldmanpushcart.jinx.core.controller;
+package io.github.oldmanpushcart.jinx.controller;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;

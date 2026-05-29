@@ -5,7 +5,7 @@
             <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
-    
+
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/jinx.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -16,11 +16,10 @@
             <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
-    
-    <root level="DEBUG">
+
+    <root level="info">
         <appender-ref ref="CONSOLE" />
-        <appender-ref ref="FILE" />
     </root>
-    
+
     <logger name="io.github.oldmanpushcart.jinx" level="DEBUG" />
 </configuration>

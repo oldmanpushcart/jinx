@@ -1,4 +1,4 @@
-package io.github.oldmanpushcart.jinx.config;
+package io.github.oldmanpushcart.jinx.core.skill;
 
 import io.micronaut.context.annotation.ConfigurationProperties;
 

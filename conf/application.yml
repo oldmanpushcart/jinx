@@ -7,24 +7,27 @@ micronaut:
     host: 0.0.0.0
 
 jinx:
-  dataspace: ./data
-  workspace: ./
 
   skill:
     directories:
       - ./skills
 
   mcp:
+    version: 1.0.0
     servers:
       amap:
         type: streamable-http
-        url: https://mcp.amap.com/mcp?key=${AMAP_MAPS_API_KEY}
+        base-url: https://mcp.amap.com
+        endpoint: /mcp?key=${AMAP_MAPS_API_KEY}
 
-  agent:
-    model: qwen-flash
+  dashscope:
     client:
       ak: ${DASHSCOPE_AK}
       http:
         connect-timeout: 5s
         read-timeout: 60s
         write-timeout: 30s
+    agent:
+      dataspace: ./data
+      workspace: ./
+      model: qwen-flash
