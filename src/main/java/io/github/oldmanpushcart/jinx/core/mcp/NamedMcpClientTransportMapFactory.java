@@ -12,6 +12,7 @@ import io.modelcontextprotocol.client.transport.ServerParameters;
 import io.modelcontextprotocol.client.transport.StdioClientTransport;
 import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.spec.McpClientTransport;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 
 import java.util.Map;
@@ -22,7 +23,7 @@ import static java.util.stream.Collectors.toMap;
 public class NamedMcpClientTransportMapFactory {
 
     @Singleton
-    @Bean
+    @Named("namedMcpClientTransportMap")
     public Map<String, McpClientTransport> makeNamedMcpClientTransportMap(McpConfig config) {
         if (CommonUtils.isEmpty(config.servers())) {
             return Map.of();

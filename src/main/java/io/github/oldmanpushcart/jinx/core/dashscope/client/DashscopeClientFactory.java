@@ -20,7 +20,6 @@ public class DashscopeClientFactory {
             .build();
 
     @Singleton
-    @Bean
     public DashscopeClient makeDashscopeClient(DashscopeClientConfig config, OkHttpClient http) {
         return DashscopeClient.newBuilder()
                 .ak(config.ak())

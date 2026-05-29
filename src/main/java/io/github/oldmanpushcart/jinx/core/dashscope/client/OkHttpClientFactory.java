@@ -9,7 +9,6 @@ import okhttp3.OkHttpClient;
 public class OkHttpClientFactory {
 
     @Singleton
-    @Bean
     public OkHttpClient makeOkHttpClient(DashscopeClientConfig.HttpClientConfig config) {
         return new OkHttpClient.Builder()
                 .connectTimeout(config.connectTimeout())

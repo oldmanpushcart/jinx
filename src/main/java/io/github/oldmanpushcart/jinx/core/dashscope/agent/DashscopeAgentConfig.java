@@ -3,12 +3,16 @@ package io.github.oldmanpushcart.jinx.core.dashscope.agent;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.context.annotation.ConfigurationProperties;
 
+import java.nio.file.Path;
+
 /**
  * DashScope 配置
  */
 @ConfigurationProperties("jinx.dashscope.agent")
-public record AgentConfig(
-        Model model
+public record DashscopeAgentConfig(
+        Model model,
+        Path workspace,
+        Path dataspace
 ) {
 
     /**

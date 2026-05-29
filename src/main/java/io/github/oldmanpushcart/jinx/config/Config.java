@@ -1,6 +1,6 @@
 package io.github.oldmanpushcart.jinx.config;
 
-import io.github.oldmanpushcart.jinx.core.dashscope.agent.AgentConfig;
+import io.github.oldmanpushcart.jinx.core.dashscope.agent.DashscopeAgentConfig;
 import io.github.oldmanpushcart.jinx.core.mcp.McpConfig;
 import io.github.oldmanpushcart.jinx.core.skill.SkillConfig;
 import io.micronaut.context.annotation.ConfigurationProperties;
@@ -13,6 +13,6 @@ public record Config(
         Path workspace,
         SkillConfig skill,
         McpConfig mcp,
-        AgentConfig agent
+        DashscopeAgentConfig agent
 ) {
 }
