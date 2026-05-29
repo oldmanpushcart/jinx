@@ -4,7 +4,6 @@ import io.github.oldmanpushcart.dashscope4j.client.DashscopeClient;
 import io.github.oldmanpushcart.dashscope4j.client.api.interceptor.Interceptor;
 import io.github.oldmanpushcart.dashscope4j.client.api.interceptor.RetryInterceptor;
 import io.github.oldmanpushcart.dashscope4j.client.util.retry.RetryStrategies;
-import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Singleton;
 import okhttp3.OkHttpClient;

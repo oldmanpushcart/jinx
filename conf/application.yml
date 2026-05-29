@@ -5,6 +5,11 @@ micronaut:
     charset: UTF-8
     port: 8080
     host: 0.0.0.0
+  http:
+    client:
+      connect-timeout: 5s
+      read-timeout: 60s
+      write-timeout: 30s
 
 jinx:
 
@@ -13,7 +18,6 @@ jinx:
       - ./skills
 
   mcp:
-    version: 1.0.0
     servers:
       amap:
         type: streamable-http
@@ -24,9 +28,9 @@ jinx:
     client:
       ak: ${DASHSCOPE_AK}
       http:
-        connect-timeout: 5s
-        read-timeout: 60s
-        write-timeout: 30s
+        connect-timeout: ${micronaut.http.client.connect-timeout}
+        read-timeout: ${micronaut.http.client.read-timeout}
+        write-timeout: ${micronaut.http.client.write-timeout}
     agent:
       dataspace: ./data
       workspace: ./

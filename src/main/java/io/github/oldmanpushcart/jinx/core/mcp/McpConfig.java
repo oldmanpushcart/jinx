@@ -16,7 +16,6 @@ import java.util.Optional;
 
 @ConfigurationProperties("jinx.mcp")
 public record McpConfig(
-        String version,
         Map<String, Server> servers
 ) {
 
@@ -33,7 +32,6 @@ public record McpConfig(
     })
     public sealed interface Server permits HttpServer, StdioServer {
 
-        @JsonProperty
         Type type();
 
         enum Type {
@@ -54,7 +52,7 @@ public record McpConfig(
 
     public record HttpServer(
             Type type,
-            URL baseUrl,
+            @JsonProperty("base-url") URL baseUrl,
             String endpoint,
             Map<String, String> headers
     ) implements Server {
@@ -72,13 +70,13 @@ public record McpConfig(
     }
 
     @Singleton
-    public record McpServerConfigConverter(ObjectMapper objectMapper)
+    record McpServerConfigConverter(ObjectMapper mapper)
             implements TypeConverter<Map<?, ?>, Server> {
 
         @Override
         public Optional<Server> convert(Map<?, ?> map, Class<Server> targetType, ConversionContext context) {
             try {
-                final var config = objectMapper.convertValue(map, Server.class);
+                final var config = mapper.convertValue(map, Server.class);
                 return Optional.of(config);
             } catch (Exception e) {
                 context.reject(map, e);

@@ -1,6 +1,5 @@
 package io.github.oldmanpushcart.jinx.core.dashscope.client;
 
-import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Singleton;
 import okhttp3.OkHttpClient;

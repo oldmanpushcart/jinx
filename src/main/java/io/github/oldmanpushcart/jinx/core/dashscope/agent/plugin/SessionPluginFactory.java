@@ -5,7 +5,6 @@ import io.github.oldmanpushcart.dashscope4j.agent.plugin.session.SessionPlugin;
 import io.github.oldmanpushcart.dashscope4j.agent.plugin.session.store.FileFragmentStore;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.ChatModel;
 import io.github.oldmanpushcart.jinx.core.dashscope.agent.DashscopeAgentConfig;
-import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Singleton;
 
