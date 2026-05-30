@@ -1,31 +1,46 @@
 package io.github.oldmanpushcart.jinx.controller;
 
-import io.github.oldmanpushcart.dashscope4j.agent.typical.dashscope.DashscopeAgent;
+import io.github.oldmanpushcart.dashscope4j.agent.Agent;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.Message;
+import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.PathVariable;
+import io.micronaut.http.annotation.Post;
+import io.micronaut.validation.Validated;
+import jakarta.validation.constraints.NotBlank;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
-import static io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils.isBlankString;
-
-@Controller("/api/v1/agent")
+@Validated
+@Controller("/api")
 public class ChatController {
 
-    private final DashscopeAgent agent;
+    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
+    private final Agent agent;
 
-    public ChatController(DashscopeAgent agent) {
+    public ChatController(Agent agent) {
         this.agent = agent;
     }
 
-    @Get(uri = "/chat", produces = "text/plain;charset=UTF-8")
-    public Publisher<String> chat(String sessionId, String prompt) {
-        if (isBlankString(prompt)) {
-            return Mono.error(() -> new IllegalArgumentException("Error: prompt cannot be empty"));
-        }
-        final var inbound = Message.user(prompt);
+    @Post(uri = "/chat/{sessionId}", produces = "text/plain;charset=UTF-8")
+    public Publisher<String> chat(
+
+            @NotBlank
+            @PathVariable("sessionId")
+            String sessionId,
+
+            @NotBlank
+            @Body
+            String content
+
+    ) {
+
+        final var inbound = Message.user(content);
         return Flux.from(agent.flow(sessionId, inbound))
-                .map(Message::text);
+                .map(Message::text)
+                .doOnError(ex -> log.warn("jinx://chat/{} occur error!", sessionId, ex));
     }
+
 }

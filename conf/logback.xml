@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <!-- 1. 控制台输出 Appender -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
+    <!-- 2. 主程序通用日志文件 Appender -->
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>logs/jinx.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
@@ -17,9 +19,30 @@
         </encoder>
     </appender>
 
+    <!-- 3. 【新增】dashscope4j 专属日志文件 Appender -->
+    <appender name="DASHSCOPE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/dashscope4j.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/dashscope4j.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 4. 【新增】dashscope4j 专属 Logger -->
+    <!-- name: 指定要拦截的包名 -->
+    <!-- level: 单独控制该包的日志级别（例如设为 DEBUG） -->
+    <!-- additivity="false": 关键配置！阻止日志向上传递给 root，避免在 jinx.log 和控制台重复打印 -->
+    <logger name="io.github.oldmanpushcart.dashscope4j" level="DEBUG" additivity="false">
+        <appender-ref ref="DASHSCOPE_FILE" />
+    </logger>
+
+    <!-- 5. 根 Logger（负责其余所有未单独配置的包） -->
     <root level="info">
         <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
     </root>
 
-    <logger name="io.github.oldmanpushcart.jinx" level="DEBUG" />
 </configuration>

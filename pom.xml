@@ -4,7 +4,7 @@
     <groupId>io.github.oldmanpushcart</groupId>
     <artifactId>jinx</artifactId>
     <packaging>jar</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.0.1-SNAPSHOT</version>
     <name>jinx</name>
     <url>https://github.com/oldmanpushcart/jinx</url>
     <licenses>
@@ -35,9 +35,19 @@
         <jackson.version>2.21.1</jackson.version>
         <reactor.version>3.6.0</reactor.version>
         <micronaut.version>4.10.23</micronaut.version>
+        <micronaut.validation.version>4.12.0</micronaut.validation.version>
     </properties>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>jinx-meta.properties</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -56,6 +66,11 @@
                             <groupId>io.micronaut</groupId>
                             <artifactId>micronaut-inject-java</artifactId>
                             <version>${micronaut.version}</version>
+                        </path>
+                        <path>
+                            <groupId>io.micronaut.validation</groupId>
+                            <artifactId>micronaut-validation-processor</artifactId>
+                            <version>${micronaut.validation.version}</version>
                         </path>
                     </annotationProcessorPaths>
                     <compilerArgs>
@@ -88,7 +103,7 @@
             <artifactId>dashscope4j-agent</artifactId>
             <version>${dashscope4j.version}</version>
         </dependency>
-        
+
         <!-- Jackson for JSON & YAML -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -105,12 +120,17 @@
             <artifactId>jackson-module-parameter-names</artifactId>
             <version>${jackson.version}</version>
         </dependency>
-        
+
         <!-- Micronaut -->
         <dependency>
             <groupId>io.micronaut</groupId>
             <artifactId>micronaut-inject</artifactId>
             <version>${micronaut.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micronaut.validation</groupId>
+            <artifactId>micronaut-validation</artifactId>
+            <version>${micronaut.validation.version}</version>
         </dependency>
         <dependency>
             <groupId>io.micronaut</groupId>
@@ -127,7 +147,7 @@
             <artifactId>micronaut-jackson-databind</artifactId>
             <version>${micronaut.version}</version>
         </dependency>
-        
+
         <!-- Project Reactor (Publisher implementation) -->
         <dependency>
             <groupId>io.projectreactor</groupId>

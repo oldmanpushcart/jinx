@@ -1,24 +1,25 @@
 package io.github.oldmanpushcart.jinx.core.dashscope.agent;
 
+import io.github.oldmanpushcart.dashscope4j.agent.Agent;
 import io.github.oldmanpushcart.dashscope4j.agent.plugin.Plugin;
-import io.github.oldmanpushcart.dashscope4j.agent.typical.dashscope.DashscopeAgent;
+import io.github.oldmanpushcart.dashscope4j.agent.typical.react.ReActAgent;
 import io.github.oldmanpushcart.dashscope4j.client.DashscopeClient;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.ChatModel;
+import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Factory;
-import jakarta.inject.Singleton;
 
 import java.util.List;
 
 @Factory
 public class DashscopeAgentFactory {
 
-    @Singleton
-    public DashscopeAgent makeDashscopeAgent(
+    @Context
+    public Agent makeDashscopeAgent(
             final DashscopeAgentConfig config,
             final DashscopeClient client,
             final List<Plugin> plugins
     ) {
-        return DashscopeAgent.newBuilder()
+        return ReActAgent.newBuilder()
                 .name("Jinx")
                 .description("Jinx Agent")
                 .client(client)
