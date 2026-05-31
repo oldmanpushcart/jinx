@@ -37,7 +37,7 @@ EOF
 
 generate_session() {
     local new_session
-    new_session="SESSION-$(shuf -i 0-9 -n 32 | tr -d '\n')"
+    new_session="S$(shuf -i 0-9 -n 32 | tr -d '\n')"
     echo "$new_session" > "$SESSION_FILE"
     echo "New session generated: $new_session"
     exit 0
