@@ -44,12 +44,6 @@ public class ChatController {
 
         final var inbound = Message.user(content);
         return Flux.from(agent.flow(sessionId, inbound))
-                .doOnEach(signal -> {
-                    if (signal.isOnComplete()) {
-                        final var outbound = signal.get();
-                        log.debug("jinx://api/chat/{} complete!", sessionId);
-                    }
-                })
                 .doOnError(ex -> log.warn("jinx://api/chat/{} occur error!", sessionId, ex))
                 .map(Message::text);
     }
