@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+
     <!-- 主日志终端输出 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %5level %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -15,7 +16,7 @@
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %5level %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -27,7 +28,7 @@
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %5level %msg%n</pattern>
         </encoder>
     </appender>
 

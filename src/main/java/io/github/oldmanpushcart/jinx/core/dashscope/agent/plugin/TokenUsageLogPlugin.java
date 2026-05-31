@@ -173,11 +173,18 @@ public class TokenUsageLogPlugin implements Plugin {
             if (null == next) {
                 return this;
             }
+
+            final var _total = total() + next.total();
+            final var _cached = cache().cached() + next.cache().cached();
             return new TokenUsage(
-                    total() + next.total(),
+                    _total,
                     input() + next.input(),
                     output() + next.output(),
-                    cache().accumulate(next.cache())
+                    new Cache(
+                            cache().creation() + next.cache().creation(),
+                            _cached,
+                            (float) _cached / _total
+                    )
             );
         }
 
@@ -192,22 +199,10 @@ public class TokenUsageLogPlugin implements Plugin {
                 int creation,
                 int cached,
                 float rate
-        ) implements Accumulator<Cache> {
+        ) {
 
             public String rateFormatted() {
                 return String.format("%.2f%%", rate() * 100);
-            }
-
-            @Override
-            public Cache accumulate(Cache next) {
-                if (null == next) {
-                    return this;
-                }
-                return new Cache(
-                        creation() + next.creation(),
-                        cached() + next.cached(),
-                        (rate() + next.rate()) / 2f
-                );
             }
 
         }
