@@ -18,10 +18,4 @@ public class JinxController {
         return Constants.VERSION;
     }
 
-    @Get(uri = "/help", produces = MediaType.TEXT_PLAIN)
-    public String help() {
-        return """
-                """;
-    }
-
 }

@@ -31,7 +31,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <slf4j.version>2.0.11</slf4j.version>
         <logback.version>1.5.29</logback.version>
-        <dashscope4j.version>4.0.0</dashscope4j.version>
+        <dashscope4j.version>4.0.1-SNAPSHOT</dashscope4j.version>
         <jackson.version>2.21.1</jackson.version>
         <reactor.version>3.6.0</reactor.version>
         <micronaut.version>4.10.23</micronaut.version>

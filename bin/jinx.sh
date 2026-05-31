@@ -1,54 +1,153 @@
 #!/bin/bash
 
-# 定义脚本的使用说明
+# ==========================================
+# 1. Helper Functions
+# ==========================================
+
+# 优化：usage 只负责打印，不再直接退出
 usage() {
-    echo "Usage: $0 [-h|--help] [-v|--version]"
+    cat << EOF
+Usage: $0 [OPTIONS] [COMMAND]
+
+A command-line tool for interacting with the remote API.
+
+OPTIONS:
+  -i, --ip IP       Specify target server IP (default: 127.0.0.1)
+  -p, --port PORT   Specify target server port (default: 8080)
+  -x, --debug       Enable debug mode (equivalent to bash -x)
+
+COMMANDS:
+  session           Show the current SESSION-ID
+  session new       Generate a new SESSION-ID and save locally
+  version           Request remote API to get version info
+  help              Show this help message
+  (stdin input)     Send text to the remote chat interface
+
+EXAMPLES:
+  # Send local text to the chat interface
+  echo "Hello" | $0
+
+  # Get remote version info
+  $0 --ip 192.168.1.50 --port 9000 version
+EOF
+}
+
+# 生成新的 session
+generate_session() {
+    local new_session
+    new_session="SESSION-$(shuf -i 0-9 -n 32 | tr -d '\n')"
+    echo "$new_session" > "$SESSION_FILE"
+    echo "New session generated: $new_session"
     exit 0
 }
 
-# 显示版本信息
-show_version() {
-    echo "MyScript version 1.0.0"
-    exit 0
+# 获取 session
+get_session_id() {
+    if [ ! -f "$SESSION_FILE" ]; then
+        generate_session
+    fi
+    cat "$SESSION_FILE"
 }
 
-# 使用 getopt 来解析参数
-# -o 指定短参数（h和v，后面加冒号:表示该选项需要接参数，这里不需要所以不加）
-# -l 指定长参数（help和version）
-# -- "$@" 表示传入脚本的所有原始参数
-# 注意：如果你的长参数需要接值，写成 --name:
-TEMP=$(getopt -o hv --long help,version -- "$@")
+# ==========================================
+# 2. Global Configuration & Argument Parsing
+# ==========================================
 
-# 检查参数解析是否出错
-if [ $? -ne 0 ]; then
-    echo "Error: 参数解析失败"
+IP="127.0.0.1"
+PORT="8080"
+SESSION_FILE="$HOME/.jinx.session"
+
+# 解析全局选项 (-i, -p)
+if ! TEMP=$(getopt -o i:p:xh --long ip:,port:,debug,help -- "$@"); then
+    echo "Error: Failed to parse arguments."
     usage
+    exit 1  # 解析失败，异常退出
 fi
 
-# 将解析后的参数重新赋值给位置参数 $1, $2...
 eval set -- "$TEMP"
 
-# 使用 while 循环和 case 语句来逐个处理参数
 while true; do
     case "$1" in
+        -i | --ip)
+            IP="$2"
+            shift 2
+            ;;
+        -p | --port)
+            PORT="$2"
+            shift 2
+            ;;
+        -x | --debug)
+            set -x
+            shift
+            ;;
         -h | --help)
             usage
-            shift # 处理完一个参数后，向左移动一位
-            ;;
-        -v | --version)
-            show_version
-            shift
+            exit 0  # 用户主动查看帮助，正常退出
             ;;
         --)
             shift
-            break # 遇到 -- 表示选项参数结束，跳出循环
+            break
             ;;
         *)
-            echo "Error: 未知参数 '$1'"
+            echo "Error: Unknown option '$1'"
             usage
+            exit 1  # 遇到未知选项，异常退出
             ;;
     esac
 done
 
-# 参数处理完毕后，执行你的主要业务逻辑
-echo "参数处理完毕，开始执行主程序..."
+# 解析子命令
+COMMAND="$1"
+case "$COMMAND" in
+    session)
+        # 如果没有第二个参数，默认显示当前 session
+        if [ -z "$2" ]; then
+            get_session_id
+            exit 0
+        elif [ "$2" == "new" ]; then
+            generate_session
+        else
+            echo "Error: Unknown session subcommand."
+            usage
+            exit 1  # 子命令错误，异常退出
+        fi
+        ;;
+    version)
+        curl -s "http://${IP}:${PORT}/api/version"
+        echo ""
+        ;;
+    help)
+        usage
+        exit 0  # 用户主动查看帮助，正常退出
+        ;;
+    "")
+        # 默认为 chat 模式（读取标准输入）
+        SESSION_ID=$(get_session_id)
+
+        # 读取原始输入
+        RAW_INPUT=$(cat)
+
+        if [ -z "$RAW_INPUT" ]; then
+            echo "Error: Standard input is empty."
+            exit 1
+        fi
+
+        # 核心改动：无论当前环境是什么编码，直接无脑转成 UTF-8 后发送给 curl
+        # 加上 //IGNORE 参数，遇到极少数无法识别的非法字符会自动丢弃，防止转换中断
+        if ! printf "%s" "$RAW_INPUT" | iconv -f "$(locale charmap)" -t UTF-8//IGNORE | curl -fsS -X POST \
+             -H 'Content-Type: text/plain; charset=utf-8' \
+             --data-binary @- \
+             "http://${IP}:${PORT}/api/chat/${SESSION_ID}"; then
+            echo "Error: Failed to send message to remote API."
+            exit 1
+        fi
+
+        # 换行，优化终端输出体验
+        echo ""
+        ;;
+    *)
+        echo "Error: Unknown command '$COMMAND'."
+        usage
+        exit 1  # 未知命令，异常退出
+        ;;
+esac

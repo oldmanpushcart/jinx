@@ -2,6 +2,7 @@ package io.github.oldmanpushcart.jinx.controller;
 
 import io.github.oldmanpushcart.dashscope4j.agent.Agent;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.Message;
+import io.github.oldmanpushcart.dashscope4j.client.api.Usage;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.PathVariable;
@@ -24,7 +25,11 @@ public class ChatController {
         this.agent = agent;
     }
 
-    @Post(uri = "/chat/{sessionId}", produces = "text/plain;charset=UTF-8")
+    @Post(
+            uri = "/chat/{sessionId}",
+            consumes = "text/plain;charset=UTF-8",
+            produces = "text/plain;charset=UTF-8"
+    )
     public Publisher<String> chat(
 
             @NotBlank
@@ -39,8 +44,14 @@ public class ChatController {
 
         final var inbound = Message.user(content);
         return Flux.from(agent.flow(sessionId, inbound))
-                .map(Message::text)
-                .doOnError(ex -> log.warn("jinx://chat/{} occur error!", sessionId, ex));
+                .doOnEach(signal -> {
+                    if (signal.isOnComplete()) {
+                        final var outbound = signal.get();
+                        log.debug("jinx://api/chat/{} complete!", sessionId);
+                    }
+                })
+                .doOnError(ex -> log.warn("jinx://api/chat/{} occur error!", sessionId, ex))
+                .map(Message::text);
     }
 
 }
