@@ -29,11 +29,11 @@
     <properties>
         <release.jdk.version>17</release.jdk.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <slf4j.version>2.0.11</slf4j.version>
+        <slf4j.version>2.0.17</slf4j.version>
         <logback.version>1.5.29</logback.version>
         <dashscope4j.version>4.0.1-SNAPSHOT</dashscope4j.version>
-        <jackson.version>2.21.1</jackson.version>
-        <reactor.version>3.6.0</reactor.version>
+        <jackson.version>2.21.4</jackson.version>
+        <reactor-bom.version>2025.0.5</reactor-bom.version>
         <micronaut.version>4.10.23</micronaut.version>
         <micronaut.validation.version>4.12.0</micronaut.validation.version>
     </properties>
@@ -80,8 +80,83 @@
 
                 </configuration>
             </plugin>
+
+            <!-- 打包插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+
+                                <!--
+                                SPI配置文件合并
+                                自动合并所有依赖中 META-INF/services/ 下的同名文件，防止覆盖导致功能缺失
+                                -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+
+                                <!--
+                                Apache许可证文件合并
+                                 将所有依赖的 LICENSE 文件内容合并，避免版权信息丢失
+                                -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+
+                                <!--
+                                Apache声明文件合并
+                                将所有依赖的 NOTICE 文件内容合并，满足开源协议要求
+                                -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer"/>
+
+                                <!--
+                                清单文件合并
+                                处理 MANIFEST.MF 文件冲突，并指定程序启动的主类 (Main-Class)
+                                -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>io.github.oldmanpushcart.jinx.JinxApplication</mainClass>
+                                </transformer>
+
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
+
+    <dependencyManagement>
+        <dependencies>
+
+            <!-- JACKSON -->
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- REACTOR -->
+            <dependency>
+                <groupId>io.projectreactor</groupId>
+                <artifactId>reactor-bom</artifactId>
+                <version>${reactor-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
 
@@ -90,6 +165,11 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -108,17 +188,14 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-parameter-names</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
 
         <!-- Micronaut -->
@@ -126,11 +203,6 @@
             <groupId>io.micronaut</groupId>
             <artifactId>micronaut-inject</artifactId>
             <version>${micronaut.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.micronaut.validation</groupId>
-            <artifactId>micronaut-validation</artifactId>
-            <version>${micronaut.validation.version}</version>
         </dependency>
         <dependency>
             <groupId>io.micronaut</groupId>
@@ -147,17 +219,21 @@
             <artifactId>micronaut-jackson-databind</artifactId>
             <version>${micronaut.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.micronaut.validation</groupId>
+            <artifactId>micronaut-validation</artifactId>
+            <version>${micronaut.validation.version}</version>
+        </dependency>
 
         <!-- Project Reactor (Publisher implementation) -->
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
-            <version>${reactor.version}</version>
         </dependency>
         <dependency>
             <groupId>io.projectreactor.addons</groupId>
             <artifactId>reactor-adapter</artifactId>
-            <version>${reactor.version}</version>
         </dependency>
+
     </dependencies>
 </project>

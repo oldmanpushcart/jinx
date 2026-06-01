@@ -12,7 +12,10 @@ import jakarta.validation.constraints.NotBlank;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
+
+import java.util.function.Function;
 
 @Validated
 @Controller("/api")
@@ -44,8 +47,13 @@ public class ChatController {
 
         final var inbound = Message.user(content);
         return Flux.from(agent.flow(sessionId, inbound))
-                .doOnError(ex -> log.warn("jinx://api/chat/{} occur error!", sessionId, ex))
-                .map(Message::text);
+                .map(Message::text)
+                .onErrorMap(t -> {
+                    final var cause = Exceptions.unwrap(t);
+                    log.warn("jinx://api/chat/{} occur error!", sessionId, cause);
+                    return cause;
+                })
+                ;
     }
 
 }
