@@ -2,7 +2,6 @@ package io.github.oldmanpushcart.jinx.controller;
 
 import io.github.oldmanpushcart.dashscope4j.agent.Agent;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.Message;
-import io.github.oldmanpushcart.dashscope4j.client.api.Usage;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.PathVariable;
@@ -14,8 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
-
-import java.util.function.Function;
 
 @Validated
 @Controller("/api")

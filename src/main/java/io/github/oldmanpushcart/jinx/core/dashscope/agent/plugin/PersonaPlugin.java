@@ -7,13 +7,11 @@ import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.ChatModel.Output;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.Message;
 import io.github.oldmanpushcart.dashscope4j.client.api.AigcRequest;
 import io.github.oldmanpushcart.dashscope4j.client.api.interceptor.ChatInterceptor;
-import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -22,6 +20,7 @@ import java.util.concurrent.CompletionStage;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+@Singleton
 public class PersonaPlugin implements Plugin {
 
     private static final Logger log = LoggerFactory.getLogger(PersonaPlugin.class);
@@ -88,16 +87,6 @@ public class PersonaPlugin implements Plugin {
                             .build())
                     .build();
             return chain.proceed(newRequest);
-        }
-
-    }
-
-    @Factory
-    static class MakeFactory {
-
-        @Singleton
-        public Plugin makePersonaPlugin() {
-            return new PersonaPlugin();
         }
 
     }

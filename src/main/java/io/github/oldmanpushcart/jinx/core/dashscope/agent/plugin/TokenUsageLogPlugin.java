@@ -9,7 +9,6 @@ import io.github.oldmanpushcart.dashscope4j.client.api.AigcResponse;
 import io.github.oldmanpushcart.dashscope4j.client.api.Usage;
 import io.github.oldmanpushcart.dashscope4j.client.api.interceptor.ChatInterceptor;
 import io.github.oldmanpushcart.dashscope4j.client.util.Accumulator;
-import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -23,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 
-
+@Singleton
 public class TokenUsageLogPlugin implements Plugin {
 
     private static final Logger log = LoggerFactory.getLogger(TokenUsageLogPlugin.class);
@@ -231,17 +230,6 @@ public class TokenUsageLogPlugin implements Plugin {
             }
 
             return new TokenUsage(total, input, output, cache);
-        }
-
-    }
-
-
-    @Factory
-    static class MakeFactory {
-
-        @Singleton
-        public Plugin makeTokenUsageLogPlugin() {
-            return new TokenUsageLogPlugin();
         }
 
     }

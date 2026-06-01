@@ -93,6 +93,13 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+
+                            <!--
+                            默认情况下，Shade 插件在打包后会在项目根目录生成一个 dependency-reduced-pom.xml 文件。
+                            这个文件会剔除已经被打进 FatJar 里的依赖。
+                            -->
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
+
                             <transformers>
 
                                 <!--
@@ -126,6 +133,23 @@
                                 </transformer>
 
                             </transformers>
+
+                            <!--
+                            过滤掉无法合并的资源
+                            1. JAR包的数字签名。因为重新打包了，这些签名都会失效，必须让他从fat-jar中去掉，避免触发验证。
+                            -->
+                            <filters>
+                                <filter>
+                                    <artifact>*.*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+
                         </configuration>
                     </execution>
                 </executions>
