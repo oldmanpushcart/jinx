@@ -95,6 +95,11 @@
                         <configuration>
 
                             <!--
+                            最终打包的文件名
+                            -->
+                            <finalName>jinx-${project.version}-all</finalName>
+
+                            <!--
                             默认情况下，Shade 插件在打包后会在项目根目录生成一个 dependency-reduced-pom.xml 文件。
                             这个文件会剔除已经被打进 FatJar 里的依赖。
                             -->
