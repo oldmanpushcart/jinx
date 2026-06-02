@@ -30,10 +30,9 @@ public class JinxApplication {
             Micronaut
                     .run(JinxApplication.class, args)
                     .start();
-            logger.info("jinx://app started.");
+            logger.info("jinx://app stopped normally.");
         } catch (Throwable t) {
-            logger.warn("jinx://app start occur error!", t);
-            t.printStackTrace(System.err);
+            logger.error("jinx://app stopped due to an error!", t);
             System.exit(-1);
         }
     }

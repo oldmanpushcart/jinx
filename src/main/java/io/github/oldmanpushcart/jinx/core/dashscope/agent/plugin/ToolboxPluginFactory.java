@@ -79,6 +79,7 @@ public class ToolboxPluginFactory {
 
                 .enableSearchTools(true)
                 .syncInterval(Duration.ofSeconds(5))
+                .dataspace(config.dataspace())
                 .build();
     }
 
