@@ -30,6 +30,9 @@ EXAMPLES:
   # Send piped text
   echo "Hello" | $0
 
+  # Merge piped text with command text (管道内容 + 命令内容)
+  cat app.log | $0 "分析以上日志"
+
   # Get remote version info
   $0 --ip 192.168.1.50 --port 9000 version
 EOF
@@ -51,11 +54,9 @@ get_session_id() {
 }
 
 # ==========================================
-# 2. Core Logic Abstraction (核心抽象)
+# 2. Core Logic Abstraction
 # ==========================================
 
-# 将发送消息的核心逻辑提取出来，避免重复代码
-# 参数 $1: 要发送的消息内容
 send_chat_message() {
     local message="$1"
     local SESSION_ID
@@ -66,8 +67,7 @@ send_chat_message() {
         exit 1
     fi
 
-    # 核心改动：无论当前环境是什么编码，直接无脑转成 UTF-8 后发送给 curl
-    # 加上 //IGNORE 参数，遇到极少数无法识别的非法字符会自动丢弃，防止转换中断
+    # 无论当前环境是什么编码，直接无脑转成 UTF-8 后发送给 curl
     if ! printf "%s" "$message" | iconv -f "$(locale charmap)" -t UTF-8//IGNORE | curl -fsS -X POST \
          -H 'Content-Type: text/plain; charset=utf-8' \
          --data-binary @- \
@@ -76,7 +76,6 @@ send_chat_message() {
         exit 1
     fi
 
-    # 换行，优化终端输出体验
     echo ""
 }
 
@@ -127,8 +126,21 @@ while true; do
     esac
 done
 
-# 解析子命令
+# ==========================================
+# 4. 核心改动：合并管道输入与命令参数
+# ==========================================
+
 COMMAND="$1"
+
+# 1. 尝试读取管道（标准输入）内容
+# 使用 -t 0 判断是否有管道输入，避免在没有管道时脚本卡住等待输入
+if [ -t 0 ]; then
+    STDIN_CONTENT=""
+else
+    STDIN_CONTENT=$(cat)
+fi
+
+# 2. 解析子命令
 case "$COMMAND" in
     session)
         if [ -z "$2" ]; then
@@ -151,13 +163,19 @@ case "$COMMAND" in
         exit 0
         ;;
     "")
-        # 默认为 chat 模式（读取标准输入）
-        RAW_INPUT=$(cat)
-        send_chat_message "$RAW_INPUT"
+        # 没有命令参数，仅发送管道内容
+        send_chat_message "$STDIN_CONTENT"
         ;;
     *)
-        # 未知命令模式：将其视为直接的聊天文本发送
-        # 这样 ./jinx.sh "今天星期几?" 就能直接生效
-        send_chat_message "$COMMAND"
+        # 有命令参数（如 "总共多少行?"）
+        # 判断是否有管道内容，进行智能拼接
+        if [ -n "$STDIN_CONTENT" ]; then
+            # 既有管道又有命令，中间加换行符拼接
+            FINAL_MESSAGE="${STDIN_CONTENT}"$'\n'"${COMMAND}"
+        else
+            # 只有命令参数，没有管道
+            FINAL_MESSAGE="$COMMAND"
+        fi
+        send_chat_message "$FINAL_MESSAGE"
         ;;
 esac
