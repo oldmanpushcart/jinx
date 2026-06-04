@@ -73,7 +73,7 @@ send_chat_message() {
     fi
 
     # 无论当前环境是什么编码，直接无脑转成 UTF-8 后发送给 curl
-    if ! printf "%s" "$message" | iconv -f "$(locale charmap)" -t UTF-8//IGNORE | curl -fsS -X POST \
+    if ! printf "%s" "$message" | iconv -f "$(locale charmap)" -t UTF-8//IGNORE | curl "$CURL_FLAGS" -X POST \
          -H 'Content-Type: text/plain; charset=utf-8' \
          --data-binary @- \
          "http://${IP}:${PORT}/api/chat/${SESSION_ID}"; then
@@ -91,13 +91,17 @@ send_chat_message() {
 IP="127.0.0.1"
 PORT="8080"
 SESSION_FILE="$HOME/.jinx.session"
+CURL_FLAGS=(-fsS)
 
 # 使用内置 getopts 解析短选项（Mac/Linux 完美兼容）
 while getopts "i:p:xh" opt; do
     case $opt in
         i) IP="$OPTARG" ;;
         p) PORT="$OPTARG" ;;
-        x) set -x ;;
+        x)
+          set -x
+          CURL_FLAGS+=(-v)
+          ;;
         h) usage; exit 0 ;;
         \?) echo "Error: Unknown option '-$OPTARG'"; usage; exit 1 ;;
         :) echo "Error: Option '-$OPTARG' requires an argument."; usage; exit 1 ;;

@@ -88,8 +88,7 @@ public class SpeakerPlugin implements Plugin {
                                     .thenApply(speaker -> {
 
                                         // 关掉之前的播放器
-                                        Optional.ofNullable(speakerRef.getAndSet(speaker))
-                                                .ifPresent(Speaker::abort);
+                                        speakerRef.getAndSet(speaker);
 
                                         //noinspection unchecked
                                         final var flow = (Publisher<AigcResponse<Output>>) r;

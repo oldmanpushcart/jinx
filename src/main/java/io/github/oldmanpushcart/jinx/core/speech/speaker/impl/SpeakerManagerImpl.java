@@ -94,39 +94,15 @@ public class SpeakerManagerImpl implements SpeakerManager {
     }
 
     private synchronized void flushAndStart() {
-        logger.info("jinx:/speaker/source-data-line-channel flush-and-start!");
+        logger.debug("jinx:/speaker/source-data-line-channel flush-and-start!");
         sourceDataLineChannel.flush();
         sourceDataLineChannel.start();
     }
 
     private synchronized void drainAndStop() {
-        logger.info("jinx:/speaker/source-data-line-channel drain-and-stop!");
+        logger.debug("jinx:/speaker/source-data-line-channel drain-and-stop!");
         sourceDataLineChannel.drain();
         sourceDataLineChannel.stop();
-    }
-
-    private record SpeakerImpl(QwenTtsRealtimeEmitter.ServerVad emitter) implements Speaker {
-
-        @Override
-        public void speak(String text) {
-            emitter.text(text);
-        }
-
-        @Override
-        public boolean isClosed() {
-            return emitter.isClosed();
-        }
-
-        @Override
-        public void close() {
-            emitter.close();
-        }
-
-        @Override
-        public void abort() {
-            emitter.abort();
-        }
-
     }
 
 }
