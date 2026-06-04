@@ -53,3 +53,15 @@ jinx:
       workspace: ./
       # 模型名称，仅限于：(qwen-flash | qwen-plus | qwen-max) 三者之一
       model: qwen-flash
+
+  # 语音配置
+  speech:
+    # 播放器源数据行配置
+    speaker:
+      enabled: true
+      source-data-line:
+        sample-rate: 8000
+        sample-size-in-bits: 16
+        channels: 1
+        signed: true
+        big-endian: false

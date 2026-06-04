@@ -2,11 +2,12 @@ package io.github.oldmanpushcart.jinx;
 
 import io.micronaut.context.annotation.Context;
 import io.micronaut.runtime.Micronaut;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Context
-public class JinxApplication {
+public class JinxApplication implements AutoCloseable {
 
     static {
 
@@ -30,11 +31,17 @@ public class JinxApplication {
             Micronaut
                     .run(JinxApplication.class, args)
                     .start();
-            logger.info("jinx://app stopped normally.");
+            logger.info("jinx://app started.");
         } catch (Throwable t) {
-            logger.error("jinx://app stopped due to an error!", t);
+            logger.error("jinx://app start due to an error!", t);
             System.exit(-1);
         }
+    }
+
+    @PreDestroy
+    @Override
+    public void close() throws Exception {
+        logger.info("jinx://app stopped.");
     }
 
 }

@@ -11,9 +11,10 @@ Usage: $0 [OPTIONS] [COMMAND]
 A command-line tool for interacting with the remote API.
 
 OPTIONS:
-  -i, --ip IP       Specify target server IP (default: 127.0.0.1)
-  -p, --port PORT   Specify target server port (default: 8080)
-  -x, --debug       Enable debug mode (equivalent to bash -x)
+  -i IP       Specify target server IP (default: 127.0.0.1)
+  -p PORT     Specify target server port (default: 8080)
+  -x          Enable debug mode (equivalent to bash -x)
+  -h          Show this help message
 
 COMMANDS:
   session           Show the current SESSION-ID
@@ -34,13 +35,17 @@ EXAMPLES:
   cat app.log | $0 "分析以上日志"
 
   # Get remote version info
-  $0 --ip 192.168.1.50 --port 9000 version
+  $0 -i 192.168.1.50 -p 9000 version
 EOF
 }
 
 generate_session() {
-    local new_session
-    new_session="S$(shuf -i 0-9 -n 32 | tr -d '\n')"
+    local new_session="S"
+    local chars="0123456789"
+    for (( i=0; i<32; i++ )); do
+        new_session+="${chars:RANDOM % ${#chars}:1}"
+    done
+
     echo "$new_session" > "$SESSION_FILE"
     echo "New session generated: $new_session"
     exit 0
@@ -87,44 +92,20 @@ IP="127.0.0.1"
 PORT="8080"
 SESSION_FILE="$HOME/.jinx.session"
 
-# 解析全局选项 (-i, -p)
-if ! TEMP=$(getopt -o i:p:xh --long ip:,port:,debug,help -- "$@"); then
-    echo "Error: Failed to parse arguments."
-    usage
-    exit 1
-fi
-
-eval set -- "$TEMP"
-
-while true; do
-    case "$1" in
-        -i | --ip)
-            IP="$2"
-            shift 2
-            ;;
-        -p | --port)
-            PORT="$2"
-            shift 2
-            ;;
-        -x | --debug)
-            set -x
-            shift
-            ;;
-        -h | --help)
-            usage
-            exit 0
-            ;;
-        --)
-            shift
-            break
-            ;;
-        *)
-            echo "Error: Unknown option '$1'"
-            usage
-            exit 1
-            ;;
+# 使用内置 getopts 解析短选项（Mac/Linux 完美兼容）
+while getopts "i:p:xh" opt; do
+    case $opt in
+        i) IP="$OPTARG" ;;
+        p) PORT="$OPTARG" ;;
+        x) set -x ;;
+        h) usage; exit 0 ;;
+        \?) echo "Error: Unknown option '-$OPTARG'"; usage; exit 1 ;;
+        :) echo "Error: Option '-$OPTARG' requires an argument."; usage; exit 1 ;;
     esac
 done
+
+# 移除已解析的选项参数，使 $1 重新指向第一个非选项参数（即 COMMAND）
+shift $((OPTIND - 1))
 
 # ==========================================
 # 4. 核心改动：合并管道输入与命令参数

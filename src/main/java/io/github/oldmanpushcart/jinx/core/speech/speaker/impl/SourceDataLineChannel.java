@@ -1,4 +1,4 @@
-package io.github.oldmanpushcart.jinx.core.speech;
+package io.github.oldmanpushcart.jinx.core.speech.speaker.impl;
 
 import javax.sound.sampled.*;
 import java.nio.ByteBuffer;
