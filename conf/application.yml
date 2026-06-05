@@ -65,3 +65,12 @@ jinx:
         channels: 1
         signed: true
         big-endian: false
+    # 录音源数据行配置
+    catcher:
+      enabled: true
+      target-data-line:
+        sample-rate: 8000
+        sample-size-in-bits: 16
+        channels: 1
+        signed: true
+        big-endian: false

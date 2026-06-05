@@ -1,4 +1,4 @@
-package io.github.oldmanpushcart.jinx.core.speech;
+package io.github.oldmanpushcart.jinx.core.speech.catcher.impl;
 
 import javax.sound.sampled.*;
 import java.io.EOFException;
