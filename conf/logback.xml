@@ -38,7 +38,7 @@
     </logger>
 
     <!-- 主日志 -->
-    <root level="debug">
+    <root level="info">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>
