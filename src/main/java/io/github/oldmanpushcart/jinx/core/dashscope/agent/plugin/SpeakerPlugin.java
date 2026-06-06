@@ -7,23 +7,22 @@ import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.ChatModel.Output;
 import io.github.oldmanpushcart.dashscope4j.client.api.AigcRequest;
 import io.github.oldmanpushcart.dashscope4j.client.api.AigcResponse;
 import io.github.oldmanpushcart.dashscope4j.client.api.interceptor.ChatInterceptor;
-import io.github.oldmanpushcart.jinx.core.speech.speaker.Speaker;
 import io.github.oldmanpushcart.jinx.core.speech.speaker.SpeakerManager;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicReference;
+
+import static io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils.isNotBlankString;
 
 @Singleton
 public class SpeakerPlugin implements Plugin {
 
     private final ChatInterceptor speakerInterceptor;
-    private final AtomicReference<Speaker> speakerRef = new AtomicReference<>();
+
 
     public SpeakerPlugin(SpeakerManager speakerManager) {
         this.speakerInterceptor = new SpeakerInterceptor(speakerManager);
@@ -58,20 +57,10 @@ public class SpeakerPlugin implements Plugin {
     /**
      * 播放器拦截器
      */
-    private class SpeakerInterceptor implements ChatInterceptor {
-
-        private final SpeakerManager speakerManager;
-
-        private SpeakerInterceptor(SpeakerManager speakerManager) {
-            this.speakerManager = speakerManager;
-        }
+    private record SpeakerInterceptor(SpeakerManager speakerManager) implements ChatInterceptor {
 
         @Override
         public CompletionStage<?> intercept(Chain chain, AigcRequest<Input, Output> request) {
-
-            // 关掉之前的播放器
-            Optional.ofNullable(speakerRef.getAndSet(null))
-                    .ifPresent(Speaker::abort);
 
             // flow
             if (chain.type() == Type.FLOW) {
@@ -87,20 +76,22 @@ public class SpeakerPlugin implements Plugin {
                             return speakerManager.openSpeaker()
                                     .thenApply(speaker -> {
 
-                                        // 关掉之前的播放器
-                                        speakerRef.getAndSet(speaker);
-
                                         //noinspection unchecked
                                         final var flow = (Publisher<AigcResponse<Output>>) r;
 
                                         // 监听流的变化并进行语音播报
                                         return Flux.from(flow)
                                                 .doOnNext(response -> {
-                                                    if (!speaker.isClosed()) {
-                                                        speaker.speak(response.output().best().message().text());
+                                                    final var text = response.output().best().message().text();
+                                                    if (isNotBlankString(text) && !speaker.isClosed()) {
+                                                        speaker.speak(text);
                                                     }
                                                 })
-                                                .doFinally(signal -> speaker.close());
+                                                .doFinally(signal -> {
+                                                    if (!speaker.isClosed()) {
+                                                        speaker.close();
+                                                    }
+                                                });
 
                                     });
                         });

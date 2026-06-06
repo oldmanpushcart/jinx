@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Singleton
 public class SpeakerManagerImpl implements SpeakerManager {
@@ -26,6 +27,8 @@ public class SpeakerManagerImpl implements SpeakerManager {
     private final SpeakerConfig config;
     private final DashscopeClient client;
     private final SourceDataLineChannel sourceDataLineChannel;
+
+    private final AtomicReference<Speaker> speakerRef = new AtomicReference<>();
 
     public SpeakerManagerImpl(SpeakerConfig config, DashscopeClient client, SourceDataLineChannel sourceDataLineChannel) {
         this.config = config;
@@ -45,7 +48,13 @@ public class SpeakerManagerImpl implements SpeakerManager {
             return CompletableFuture.failedStage(new UnsupportedOperationException("Speaker is disabled!"));
         }
 
-        final var connectF = new CompletableFuture<QwenTtsRealtimeEmitter.ServerVad>();
+//        // 关掉之前的播放器
+//        Optional.ofNullable(speakerRef.getAndSet(null))
+//                .ifPresent(speaker -> {
+//                    speaker.abort();
+//                });
+
+        final var connectF = new CompletableFuture<Speaker>();
 
         final var session = QwenTtsRealtimeSession.newBuilder()
                 .mode(QwenTtsRealtimeSession.Mode.SERVER_COMMIT)
@@ -58,13 +67,25 @@ public class SpeakerManagerImpl implements SpeakerManager {
 
         client.realtime(session, new Realtime.Handler<>() {
 
-            private volatile QwenTtsRealtimeEmitter.ServerVad emitter;
+            private volatile Speaker speaker;
 
             @Override
             public void onOpen(Realtime.Emitter<ClientEvent> emitter) {
-                this.emitter = (QwenTtsRealtimeEmitter.ServerVad) emitter;
-                flushAndStart();
-                connectF.complete(this.emitter);
+                final var serverVad = (QwenTtsRealtimeEmitter.ServerVad) emitter;
+                final var speaker = new SpeakerImpl(serverVad);
+                this.speaker = speaker;
+
+                while (true) {
+                    final var exists = speakerRef.get();
+                    if (speakerRef.compareAndSet(exists, speaker)) {
+                        if (null != exists) {
+                            exists.abort();
+                        }
+                        break;
+                    }
+                }
+
+                connectF.complete(speaker);
             }
 
             @Override
@@ -82,27 +103,12 @@ public class SpeakerManagerImpl implements SpeakerManager {
 
             @Override
             public void onClosed(Throwable ex) {
-                if (null != emitter && !emitter.isClosed()) {
-                    emitter.close();
-                }
-                drainAndStop();
+                speakerRef.compareAndSet(speaker, null);
             }
 
         });
 
-        return connectF.thenApply(SpeakerImpl::new);
-    }
-
-    private synchronized void flushAndStart() {
-        logger.debug("jinx:/speaker/source-data-line-channel flush-and-start!");
-        sourceDataLineChannel.flush();
-        sourceDataLineChannel.start();
-    }
-
-    private synchronized void drainAndStop() {
-        logger.debug("jinx:/speaker/source-data-line-channel drain-and-stop!");
-        sourceDataLineChannel.drain();
-        sourceDataLineChannel.stop();
+        return connectF;
     }
 
 }

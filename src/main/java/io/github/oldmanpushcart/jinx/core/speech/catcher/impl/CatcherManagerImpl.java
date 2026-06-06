@@ -42,7 +42,7 @@ public class CatcherManagerImpl implements CatcherManager {
     }
 
     @Override
-    public Publisher<String> openCatcher() {
+    public Publisher<String> catching() {
 
         if (!isEnabled()) {
             throw new UnsupportedOperationException("Catcher is disabled!");
@@ -88,7 +88,7 @@ public class CatcherManagerImpl implements CatcherManager {
 
                 final var serverVad = (QwenAsrRealtimeEmitter.ServerVad) emitter;
 
-                // 启动拾音
+                // 启动音频获取
                 picker = new Picker(serverVad).begin();
 
             }

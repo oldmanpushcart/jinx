@@ -29,6 +29,7 @@ public class SourceDataLineChannelFactory {
         );
         final var source = AudioSystem.getSourceDataLine(format);
         source.open(format);
+        source.start();
 
         logger.info("jinx:/speech/source-data-line-channel opened. sample-rate={};channels={}",
                 config.sourceDataLine().sampleRate(),

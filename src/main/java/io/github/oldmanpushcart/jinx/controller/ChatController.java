@@ -15,7 +15,7 @@ import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 
 @Validated
-@Controller("/api")
+@Controller("/api/chat")
 public class ChatController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
@@ -26,7 +26,7 @@ public class ChatController {
     }
 
     @Post(
-            uri = "/chat/{sessionId}",
+            uri = "/{sessionId}",
             consumes = "text/plain;charset=UTF-8",
             produces = "text/plain;charset=UTF-8"
     )

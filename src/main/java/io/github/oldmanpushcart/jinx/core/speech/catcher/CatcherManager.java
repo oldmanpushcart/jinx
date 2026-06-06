@@ -6,6 +6,6 @@ public interface CatcherManager {
 
     boolean isEnabled();
 
-    Publisher<String> openCatcher();
+    Publisher<String> catching();
 
 }
