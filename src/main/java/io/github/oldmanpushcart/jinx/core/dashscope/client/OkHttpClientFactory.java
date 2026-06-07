@@ -4,6 +4,8 @@ import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Singleton;
 import okhttp3.OkHttpClient;
 
+import java.time.Duration;
+
 @Factory
 public class OkHttpClientFactory {
 
@@ -13,6 +15,7 @@ public class OkHttpClientFactory {
                 .connectTimeout(config.connectTimeout())
                 .readTimeout(config.readTimeout())
                 .writeTimeout(config.writeTimeout())
+                .pingInterval(Duration.ZERO)
                 .build();
     }
 
