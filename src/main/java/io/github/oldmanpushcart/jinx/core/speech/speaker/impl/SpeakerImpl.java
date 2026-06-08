@@ -2,8 +2,17 @@ package io.github.oldmanpushcart.jinx.core.speech.speaker.impl;
 
 import io.github.oldmanpushcart.dashscope4j.client.aigc.audio.tts.qwen_tts_realtime.QwenTtsRealtimeEmitter;
 import io.github.oldmanpushcart.jinx.core.speech.speaker.Speaker;
+import org.jspecify.annotations.NonNull;
 
-record SpeakerImpl(QwenTtsRealtimeEmitter.ServerVad emitter) implements Speaker {
+final class SpeakerImpl implements Speaker {
+
+    private final QwenTtsRealtimeEmitter.ServerVad emitter;
+    private final String _toString;
+
+    SpeakerImpl(QwenTtsRealtimeEmitter.ServerVad emitter) {
+        this.emitter = emitter;
+        this._toString = "jinx:/speaker/%s".formatted(emitter.session().id());
+    }
 
     @Override
     public void speak(String text) {
@@ -23,6 +32,12 @@ record SpeakerImpl(QwenTtsRealtimeEmitter.ServerVad emitter) implements Speaker 
     @Override
     public void abort() {
         emitter.abort();
+    }
+
+
+    @Override
+    public @NonNull String toString() {
+        return _toString;
     }
 
 }

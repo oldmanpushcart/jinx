@@ -2,6 +2,7 @@ package io.github.oldmanpushcart.jinx.core.speech.catcher.impl;
 
 import io.github.oldmanpushcart.dashscope4j.agent.Agent;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.Message;
+import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherConfig;
 import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherManager;
 import io.micronaut.context.annotation.Context;
 import reactor.core.Disposable;
@@ -13,8 +14,10 @@ import java.util.concurrent.atomic.AtomicReference;
 @Context
 public class CatcherLatcher {
 
-    public CatcherLatcher(Agent agent, CatcherManager catcherManager) {
-        init(agent, catcherManager);
+    public CatcherLatcher(CatcherConfig config, Agent agent, CatcherManager catcherManager) {
+        if (config.enabled()) {
+            init(agent, catcherManager);
+        }
     }
 
     private void init(Agent agent, CatcherManager catcherManager) {
