@@ -2,6 +2,7 @@ package io.github.oldmanpushcart.jinx.core.speech.catcher.impl;
 
 import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherConfig;
 import io.micronaut.context.annotation.Factory;
+import io.micronaut.context.annotation.Requires;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,7 @@ public class TargetDataLineChannelFactory {
     private static final Logger logger = LoggerFactory.getLogger(TargetDataLineChannelFactory.class);
 
     @Singleton
+    @Requires(property = "jinx.speech.capture.enabled", value = "true")
     public TargetDataLineChannel openTargetDataLineChannel(CatcherConfig config) throws LineUnavailableException {
         if (!config.enabled()) {
             return null;

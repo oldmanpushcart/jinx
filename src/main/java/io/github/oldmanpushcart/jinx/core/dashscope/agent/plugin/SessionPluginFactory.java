@@ -2,7 +2,7 @@ package io.github.oldmanpushcart.jinx.core.dashscope.agent.plugin;
 
 import io.github.oldmanpushcart.dashscope4j.agent.plugin.Plugin;
 import io.github.oldmanpushcart.dashscope4j.agent.plugin.session.SessionPlugin;
-import io.github.oldmanpushcart.dashscope4j.agent.plugin.session.store.FileFragmentStore;
+import io.github.oldmanpushcart.dashscope4j.agent.plugin.session.storage.FileFragmentStorage;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.ChatModel;
 import io.github.oldmanpushcart.jinx.core.dashscope.agent.DashscopeAgentConfig;
 import io.micronaut.context.annotation.Factory;
@@ -14,7 +14,7 @@ public class SessionPluginFactory {
     @Singleton
     public Plugin makeSessionPlugin(DashscopeAgentConfig config) {
         return SessionPlugin.newBuilder()
-                .store(FileFragmentStore.newBuilder()
+                .storage(FileFragmentStorage.newBuilder()
                         .directory(config.dataspace())
                         .build())
 

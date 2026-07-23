@@ -11,6 +11,7 @@ import io.github.oldmanpushcart.dashscope4j.client.api.realtime.Realtime;
 import io.github.oldmanpushcart.dashscope4j.client.api.realtime.RealtimeConnector;
 import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherConfig;
 import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherManager;
+import jakarta.annotation.Nullable;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -30,7 +31,13 @@ public class CatcherManagerImpl implements CatcherManager {
     private final DashscopeClient client;
     private final TargetDataLineChannel targetDataLineChannel;
 
-    public CatcherManagerImpl(CatcherConfig config, DashscopeClient client, TargetDataLineChannel targetDataLineChannel) {
+    public CatcherManagerImpl(
+            CatcherConfig config,
+            DashscopeClient client,
+
+            @Nullable
+            TargetDataLineChannel targetDataLineChannel
+    ) {
         this.config = config;
         this.client = client;
         this.targetDataLineChannel = targetDataLineChannel;

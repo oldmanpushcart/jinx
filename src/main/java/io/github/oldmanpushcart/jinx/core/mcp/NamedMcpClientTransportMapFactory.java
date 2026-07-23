@@ -1,8 +1,8 @@
 package io.github.oldmanpushcart.jinx.core.mcp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.oldmanpushcart.dashscope4j.agent.plugin.toolbox.loader.mcp.RecoverableMcpClientTransport;
-import io.github.oldmanpushcart.dashscope4j.agent.plugin.toolbox.loader.mcp.RecoverableMcpClientTransport.McpClientTransportFactory;
+import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.mcp.RecoverableMcpClientTransport;
+import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.mcp.RecoverableMcpClientTransport.McpClientTransportFactory;
 import io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils;
 import io.micronaut.context.annotation.Factory;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
