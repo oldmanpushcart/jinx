@@ -95,7 +95,7 @@ public class ToolboxPluginFactory {
                     final var name = entry.getKey();
                     final var transport = entry.getValue();
                     return McpToolSource.newBuilder()
-                            .name(name)
+                            .namespace(name)
                             .transport(transport)
                             .build();
                 })
