@@ -9,7 +9,7 @@ import io.github.oldmanpushcart.dashscope4j.client.aigc.audio.asr.qwen_asr_realt
 import io.github.oldmanpushcart.dashscope4j.client.aigc.audio.asr.qwen_asr_realtime.event.server.ServerEvent;
 import io.github.oldmanpushcart.dashscope4j.client.api.realtime.Realtime;
 import io.github.oldmanpushcart.dashscope4j.client.api.realtime.RealtimeConnector;
-import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherConfig;
+import io.github.oldmanpushcart.jinx.core.JinxSettings;
 import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherManager;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Singleton;
@@ -27,25 +27,25 @@ import java.util.concurrent.CompletionStage;
 public class CatcherManagerImpl implements CatcherManager {
 
     private static final Logger logger = LoggerFactory.getLogger(CatcherManagerImpl.class);
-    private final CatcherConfig config;
+    private final JinxSettings settings;
     private final DashscopeClient client;
     private final TargetDataLineChannel targetDataLineChannel;
 
     public CatcherManagerImpl(
-            CatcherConfig config,
+            JinxSettings settings,
             DashscopeClient client,
 
             @Nullable
             TargetDataLineChannel targetDataLineChannel
     ) {
-        this.config = config;
+        this.settings = settings;
         this.client = client;
         this.targetDataLineChannel = targetDataLineChannel;
     }
 
     @Override
     public boolean isEnabled() {
-        return config.enabled();
+        return settings.isCatcherEnabled();
     }
 
     @Override

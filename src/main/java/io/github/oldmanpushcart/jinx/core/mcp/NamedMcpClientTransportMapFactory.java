@@ -23,18 +23,16 @@ public class NamedMcpClientTransportMapFactory {
 
     @Singleton
     @Named("namedMcpClientTransportMap")
-    public Map<String, McpClientTransport> makeNamedMcpClientTransportMap(McpConfig config) {
-        if (CommonUtils.isEmpty(config.servers())) {
+    public Map<String, McpClientTransport> makeNamedMcpClientTransportMap(McpRuntimeRegistry registry) {
+        final var entries = registry.listAll();
+        if (entries.isEmpty()) {
             return Map.of();
         }
-        return config.servers().entrySet().stream()
+        return entries.stream()
                 .collect(toMap(
-                        Map.Entry::getKey,
-                        entry -> {
-                            final var server = entry.getValue();
-                            return recoverable(mapper -> toTransport(server));
-                        })
-                );
+                        McpFileEntry::name,
+                        entry -> recoverable(mapper -> toTransport(entry.server()))
+                ));
     }
 
     private McpClientTransport toTransport(McpConfig.Server server) {
@@ -55,10 +53,12 @@ public class NamedMcpClientTransportMapFactory {
             // sse
             case SSE -> {
                 final var sse = (McpConfig.HttpServer) server;
+                final var baseUrl = McpFileStore.resolveEnvVars(sse.baseUrl().toString());
+                final var endpoint = McpFileStore.resolveEnvVars(sse.endpoint());
                 //noinspection deprecation
-                yield HttpClientSseClientTransport.builder(sse.baseUrl().toString())
-                        .sseEndpoint(sse.endpoint())
-                        .httpRequestCustomizer((builder, method, endpoint, body, context) -> {
+                yield HttpClientSseClientTransport.builder(baseUrl)
+                        .sseEndpoint(endpoint)
+                        .httpRequestCustomizer((builder, method, ep, body, context) -> {
                             if (CommonUtils.isNotEmpty(sse.headers())) {
                                 sse.headers().forEach(builder::header);
                             }
@@ -69,9 +69,11 @@ public class NamedMcpClientTransportMapFactory {
             // streamable-http
             case STREAMABLE_HTTP -> {
                 final var http = (McpConfig.HttpServer) server;
-                yield HttpClientStreamableHttpTransport.builder(http.baseUrl().toString())
-                        .endpoint(http.endpoint())
-                        .httpRequestCustomizer((builder, method, endpoint, body, context) -> {
+                final var baseUrl = McpFileStore.resolveEnvVars(http.baseUrl().toString());
+                final var endpoint = McpFileStore.resolveEnvVars(http.endpoint());
+                yield HttpClientStreamableHttpTransport.builder(baseUrl)
+                        .endpoint(endpoint)
+                        .httpRequestCustomizer((builder, method, ep, body, context) -> {
                             if (CommonUtils.isNotEmpty(http.headers())) {
                                 http.headers().forEach(builder::header);
                             }

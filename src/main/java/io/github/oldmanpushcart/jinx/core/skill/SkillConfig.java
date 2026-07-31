@@ -7,6 +7,7 @@ import java.util.List;
 
 @ConfigurationProperties("jinx.skill")
 public record SkillConfig(
-        List<Path> directories
+        List<Path> directories,
+        Path configDirectory
 ) {
 }

@@ -15,6 +15,8 @@ import io.github.oldmanpushcart.dashscope4j.agent.toolkit.file.TextFileOpsToolki
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.network.HttpToolkit;
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.system.ShellToolkit;
 import io.github.oldmanpushcart.dashscope4j.client.DashscopeClient;
+import io.github.oldmanpushcart.jinx.core.ConfigTools;
+import io.github.oldmanpushcart.jinx.core.JinxConfigToolkit;
 import io.github.oldmanpushcart.jinx.core.dashscope.agent.DashscopeAgentConfig;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Value;
@@ -36,12 +38,13 @@ public class ToolboxPluginFactory {
     public Plugin makeToolboxPlugin(
             final DashscopeAgentConfig config,
             final DashscopeClient client,
+            final ConfigTools configTools,
             @Value("${jinx.skill.directories}") final List<Path> skillDirectories,
             @Named("namedMcpClientTransportMap") final Map<String, McpClientTransport> namedMcpClientTransportMap
     ) {
         return ToolboxPlugin.newBuilder()
                 .fixes(List.of(buildingFixedToolbox(config, client)))
-                .dynamics(List.of(buildingDynamicToolbox(config, client, skillDirectories, namedMcpClientTransportMap)))
+                .dynamics(List.of(buildingDynamicToolbox(config, client, configTools, skillDirectories, namedMcpClientTransportMap)))
                 .build();
     }
 
@@ -78,6 +81,7 @@ public class ToolboxPluginFactory {
     private Toolbox buildingDynamicToolbox(
             DashscopeAgentConfig config,
             DashscopeClient client,
+            ConfigTools configTools,
             List<Path> skillDirectories,
             Map<String, McpClientTransport> namedMcpClientTransportMap
     ) {
@@ -119,7 +123,8 @@ public class ToolboxPluginFactory {
                                 .build(),
                         TextFileOpsToolkit.newBuilder()
                                 .workspace(config.workspace())
-                                .build()
+                                .build(),
+                        JinxConfigToolkit.create(configTools)
                 )
                 .build());
 
