@@ -7,6 +7,7 @@ import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.ToolSource;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.mcp.McpToolSource;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.mcp.RecoverableMcpClientTransport;
 import io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils;
+import io.github.oldmanpushcart.dashscope4j.client.util.CompletableFutureUtils;
 import io.github.oldmanpushcart.dashscope4j.client.util.jackson.JacksonJsonUtils;
 import io.github.oldmanpushcart.jinx.core.mcp.McpFileStore;
 import io.github.oldmanpushcart.jinx.core2.CoreErrorCodes;
@@ -20,22 +21,23 @@ import io.modelcontextprotocol.client.transport.ServerParameters;
 import io.modelcontextprotocol.client.transport.StdioClientTransport;
 import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.spec.McpClientTransport;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardOpenOption.*;
 
+@Singleton
 public class McpRegistryImpl implements McpRegistry, CoreErrorCodes {
 
     private static final String MCP_FILE_SUFFIX = ".mcp.json";
@@ -57,34 +59,10 @@ public class McpRegistryImpl implements McpRegistry, CoreErrorCodes {
         // 存储MCP
         store(mcp);
 
-        // 获取订阅关系
-        final var subscription = CompletableFuture
-
-                // 转换为工具源
-                .completedStage(toTs(mcp))
-
-                // 工具源初始化
-                .thenCompose(ToolSource::initialize)
-                .exceptionally(ex -> {
-                    throw McpException.of(mcp, MCP_INIT_ERROR, "Initialize fail!", ex);
-                })
-
-                // 工具箱订阅
-                .thenCompose(toolbox::subscribe)
-                .exceptionally(ex -> {
-                    throw McpException.of(mcp, MCP_SUBSCRIBE_ERROR, "Subscribe fail!", ex);
-                })
-
-                // blocked
+        // 阻塞订阅
+        subscribe(mcp)
                 .toCompletableFuture()
                 .join();
-
-        // 添加到注册表格，如果已存在已有的配置，则关闭
-        final var entry = new Entry(mcp.name(), mcp, subscription);
-        synchronized (this) {
-            Optional.ofNullable(entries.put(entry.name(), entry))
-                    .ifPresent(Entry::close);
-        }
 
         logger.debug("{}/register completed. mcp={};", this, mcp.name());
 
@@ -179,13 +157,45 @@ public class McpRegistryImpl implements McpRegistry, CoreErrorCodes {
                 .build();
     }
 
-    private void init() {
+    private CompletionStage<Void> subscribe(McpEntity mcp) {
+        return CompletableFuture
+
+                // 转换为工具源
+                .completedStage(toTs(mcp))
+
+                // 工具源初始化
+                .thenCompose(ToolSource::initialize)
+                .exceptionally(ex -> {
+                    throw McpException.of(mcp, MCP_INIT_ERROR, "Initialize fail!", ex);
+                })
+
+                // 工具箱订阅
+                .thenCompose(toolbox::subscribe)
+                .exceptionally(ex -> {
+                    throw McpException.of(mcp, MCP_SUBSCRIBE_ERROR, "Subscribe fail!", ex);
+                })
+
+                // 添加到注册表
+                .thenAccept(sub -> {
+                    final var entry = new Entry(mcp.name(), mcp, sub);
+                    final var exists = entries.put(mcp.name(), entry);
+                    if (null != exists) {
+                        exists.close();
+                    }
+                });
+    }
+
+    @PostConstruct
+    public void init() {
         final var directory = config.directory();
 
         if (null == directory) {
             return;
         }
 
+        final var stages = new ArrayList<CompletionStage<Void>>();
+
+        // 遍历MCP目录并完成注册
         try (final var stream = Files.list(directory)) {
 
             // 过滤出符合格式要求的MCP文件
@@ -210,25 +220,35 @@ public class McpRegistryImpl implements McpRegistry, CoreErrorCodes {
                         ));
                     }
 
-                    // 注册
-                    register(mcp);
+                    // 订阅
+                    final var stage = subscribe(mcp).whenComplete((u, ex) -> {
+                        if (null != ex) {
+                            logger.warn("{}/init mcp ignored by subscribe error! mcp={};", this, mcpName, ex);
+                        } else {
+                            logger.debug("{}/init mcp registered. mcp={};", this, mcpName);
+                        }
+                    });
+                    stages.add(stage);
 
                 } catch (Exception ex) {
-                    logger.warn("{}/fetch ignored load mcp by error, mcp={};file={}", this, mcpName, mcpFile, ex);
+                    logger.warn("{}/init mcp ignored by load error! mcp={};file={}", this, mcpName, mcpFile, ex);
                 }
             });
 
         } catch (IOException ioEx) {
-
+            logger.warn("{}/init skipped by error!", this, ioEx);
         }
+
+        // 阻塞等待加载完成
+        CompletableFutureUtils.allOf(stages)
+                .toCompletableFuture()
+                .join();
+
     }
 
     @Override
     public Optional<McpEntity> unregister(String name) {
-        final Optional<Entry> removeOpt;
-        synchronized (this) {
-            removeOpt = Optional.ofNullable(entries.remove(name));
-        }
+        final Optional<Entry> removeOpt = Optional.ofNullable(entries.remove(name));
         removeOpt.ifPresent(Entry::close);
         logger.debug("{}/{} unregister completed. exists={}", this, name, removeOpt.isPresent());
         return removeOpt
@@ -244,7 +264,8 @@ public class McpRegistryImpl implements McpRegistry, CoreErrorCodes {
 
     @Override
     public Optional<McpEntity> get(String name) {
-        return null;
+        return Optional.ofNullable(entries.get(name))
+                .map(Entry::mcp);
     }
 
     private record Entry(String name, McpEntity mcp, ToolSubscription subscription)
