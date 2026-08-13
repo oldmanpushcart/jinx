@@ -53,7 +53,7 @@ public class CatcherManagerImpl implements CatcherManager {
         final var target = AudioSystem.getTargetDataLine(format);
         target.open(format);
 
-        logger.info("jinx:/speech/target-data-line-channel opened. sample-rate={};channels={}",
+        logger.info("jinx://speech/catcher/channel opened. sample-rate={};channels={}",
                 targetCfg.sampleRate(),
                 targetCfg.channels()
         );
@@ -62,7 +62,7 @@ public class CatcherManagerImpl implements CatcherManager {
             @Override
             public void close() {
                 super.close();
-                logger.info("jinx:/speech/target-data-line-channel closed.");
+                logger.info("jinx://speech/catcher/channel closed.");
             }
 
         };
@@ -145,6 +145,9 @@ public class CatcherManagerImpl implements CatcherManager {
     }
 
 
+    /**
+     * 拾音器
+     */
     private class Picker {
 
         private final QwenAsrRealtimeEmitter.ServerVad emitter;

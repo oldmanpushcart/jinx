@@ -60,7 +60,7 @@ public class SpeakerManagerImpl implements SpeakerManager {
         source.open(format);
         source.start();
 
-        logger.info("jinx:/speech/source-data-line-channel opened. sample-rate={};channels={}",
+        logger.info("jinx://speech/speaker/channel opened. sample-rate={};channels={}",
                 sourceCfg.sampleRate(),
                 sourceCfg.channels()
         );
@@ -69,7 +69,7 @@ public class SpeakerManagerImpl implements SpeakerManager {
             @Override
             public void close() {
                 super.close();
-                logger.info("jinx:/speech/source-data-line-channel closed.");
+                logger.info("jinx://speech/speaker/channel closed.");
             }
 
         };

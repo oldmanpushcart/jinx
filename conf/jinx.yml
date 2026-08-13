@@ -34,7 +34,7 @@ jinx:
 
     # 拾音器配置
     catcher:
-      enabled: true
+      enabled: false
       target-data-line:
         sample-rate: 8000
         sample-size-in-bits: 16
