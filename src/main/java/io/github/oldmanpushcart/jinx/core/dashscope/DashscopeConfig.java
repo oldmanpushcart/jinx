@@ -1,7 +1,10 @@
 package io.github.oldmanpushcart.jinx.core.dashscope;
 
 import io.micronaut.context.annotation.ConfigurationProperties;
+import io.micronaut.context.annotation.Context;
+import jakarta.annotation.PostConstruct;
 
+import java.nio.file.Files;
 import java.time.Duration;
 
 @ConfigurationProperties("jinx.dashscope")

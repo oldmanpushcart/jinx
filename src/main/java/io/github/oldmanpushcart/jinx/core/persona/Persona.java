@@ -55,7 +55,6 @@ public class Persona {
      * @throws IOException 更新失败
      */
     public void update(String content) throws IOException {
-        Files.createDirectories(personaPath.getParent());
         Files.writeString(
                 personaPath, content, UTF_8,
                 CREATE, TRUNCATE_EXISTING, SYNC, WRITE
