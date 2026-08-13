@@ -33,6 +33,9 @@ public class PersonaToolkit implements Toolkit {
         return tools.iterator();
     }
 
+    /**
+     * @return 设定人格工具
+     */
     private Tool personaUpdate() {
         return FunctionTool.newBuilder()
                 .name("persona$update")
@@ -49,6 +52,9 @@ public class PersonaToolkit implements Toolkit {
                 .build();
     }
 
+    /**
+     * @return 重新加载人格工具
+     */
     private Tool personaReload() {
         return FunctionTool.newBuilder()
                 .name("persona$reload")
@@ -65,6 +71,9 @@ public class PersonaToolkit implements Toolkit {
                 .build();
     }
 
+    /**
+     * @return 获取人格工具
+     */
     private Tool personaGet() {
         return FunctionTool.newBuilder()
                 .name("persona$get")

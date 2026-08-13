@@ -2,11 +2,15 @@ package io.github.oldmanpushcart.jinx.core.dashscope;
 
 import io.github.oldmanpushcart.dashscope4j.agent.Agent;
 import io.github.oldmanpushcart.dashscope4j.agent.hook.Hook;
+import io.github.oldmanpushcart.dashscope4j.agent.hook.session.SessionHook;
+import io.github.oldmanpushcart.dashscope4j.agent.hook.session.storage.FileFragmentStorage;
 import io.github.oldmanpushcart.dashscope4j.agent.typical.react.ReActAgent;
 import io.github.oldmanpushcart.dashscope4j.client.DashscopeClient;
+import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.ChatModel;
 import io.github.oldmanpushcart.dashscope4j.client.api.interceptor.Interceptor;
 import io.github.oldmanpushcart.dashscope4j.client.api.interceptor.RetryInterceptor;
 import io.github.oldmanpushcart.dashscope4j.client.util.retry.RetryStrategies;
+import io.github.oldmanpushcart.jinx.JinxConfig;
 import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Singleton;
 import okhttp3.OkHttpClient;
@@ -53,6 +57,24 @@ public class DashscopeFactory {
                 .description(agentCfg.description())
                 .client(client)
                 .hooks(hooks)
+                .build();
+    }
+
+    @Singleton
+    public SessionHook makeSessionHook(JinxConfig config) {
+        return SessionHook.newBuilder()
+                .storage(FileFragmentStorage.newBuilder()
+                        .directory(config.dataspace())
+                        .build())
+                // 1M
+                .maxTokens(1000 * 1000)
+
+                // 70%触发压缩
+                .gcRatio(0.7)
+
+                // 压缩模型
+                .model(ChatModel.QWEN_FLASH)
+
                 .build();
     }
 

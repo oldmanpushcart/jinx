@@ -12,6 +12,12 @@ import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
+/**
+ * 人格钩子
+ * <p>
+ * 用于给智能体挂上人格特性
+ * </p>
+ */
 @Singleton
 public class PersonaHook implements PreparationHook {
 
@@ -26,6 +32,9 @@ public class PersonaHook implements PreparationHook {
         return List.of(settingInterceptor);
     }
 
+    /**
+     * 设置拦截器
+     */
     static class SettingInterceptor implements ChatInterceptor {
 
         private final Persona persona;

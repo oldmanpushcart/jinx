@@ -24,7 +24,7 @@ jinx:
 
     # 播放器配置
     speaker:
-      enabled: false
+      enabled: true
       source-data-line:
         sample-rate: 8000
         sample-size-in-bits: 16
@@ -34,7 +34,7 @@ jinx:
 
     # 拾音器配置
     catcher:
-      enabled: false
+      enabled: true
       target-data-line:
         sample-rate: 8000
         sample-size-in-bits: 16
