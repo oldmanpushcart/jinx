@@ -5,6 +5,10 @@ import io.github.oldmanpushcart.dashscope4j.agent.toolbox.HashMapToolbox;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.Toolbox;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.indexer.EmbeddingToolIndexer;
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.Toolkit;
+import io.github.oldmanpushcart.dashscope4j.agent.toolkit.dashscope.DashscopeToolkit;
+import io.github.oldmanpushcart.dashscope4j.agent.toolkit.file.FileOpsToolkit;
+import io.github.oldmanpushcart.dashscope4j.agent.toolkit.file.TextFileOpsToolkit;
+import io.github.oldmanpushcart.dashscope4j.agent.toolkit.network.HttpToolkit;
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.system.RuntimeToolkit;
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.system.ShellToolkit;
 import io.github.oldmanpushcart.dashscope4j.client.DashscopeClient;
@@ -32,7 +36,21 @@ public class ToolboxFactory {
                 .syncInterval(Duration.ofSeconds(3))
                 .build();
 
-        toolbox.subscribeTools("dashscope4j", new ArrayList<>(toolkits))
+        final List<Iterable<? extends Tool>> merged = new ArrayList<>(toolkits);
+        merged.addAll(List.of(
+                DashscopeToolkit.create(),
+                HttpToolkit.newBuilder()
+                        .workspace(config.workspace())
+                        .build(),
+                FileOpsToolkit.newBuilder()
+                        .workspace(config.workspace())
+                        .build(),
+                TextFileOpsToolkit.newBuilder()
+                        .workspace(config.workspace())
+                        .build()
+        ));
+
+        toolbox.subscribeTools("dashscope4j", merged)
                 .toCompletableFuture()
                 .join();
 
