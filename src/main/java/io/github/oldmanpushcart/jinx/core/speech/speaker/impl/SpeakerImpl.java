@@ -4,7 +4,7 @@ import io.github.oldmanpushcart.dashscope4j.client.aigc.audio.tts.qwen_tts_realt
 import io.github.oldmanpushcart.jinx.core.speech.speaker.Speaker;
 import org.jspecify.annotations.NonNull;
 
-final class SpeakerImpl implements Speaker {
+class SpeakerImpl implements Speaker {
 
     private final QwenTtsRealtimeEmitter.ServerVad emitter;
     private final String _toString;

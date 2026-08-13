@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * 音频模块启动器
  */
 @Context
-public class SpeechLatcher {
+class SpeechLatcher {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Toolbox toolbox;

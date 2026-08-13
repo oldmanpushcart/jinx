@@ -9,8 +9,10 @@ import io.github.oldmanpushcart.dashscope4j.client.aigc.audio.asr.qwen_asr_realt
 import io.github.oldmanpushcart.dashscope4j.client.aigc.audio.asr.qwen_asr_realtime.event.server.ServerEvent;
 import io.github.oldmanpushcart.dashscope4j.client.api.realtime.Realtime;
 import io.github.oldmanpushcart.dashscope4j.client.api.realtime.RealtimeConnector;
+import io.github.oldmanpushcart.dashscope4j.client.util.IOUtils;
 import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherManager;
 import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherSetting;
+import jakarta.annotation.PreDestroy;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -144,6 +146,10 @@ public class CatcherManagerImpl implements CatcherManager {
         });
     }
 
+    @PreDestroy
+    void destroy() {
+        IOUtils.closeQuietly(channel);
+    }
 
     /**
      * 拾音器

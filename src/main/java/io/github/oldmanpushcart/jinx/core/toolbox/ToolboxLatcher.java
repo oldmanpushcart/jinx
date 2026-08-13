@@ -1,0 +1,109 @@
+package io.github.oldmanpushcart.jinx.core.toolbox;
+
+import io.github.oldmanpushcart.dashscope4j.agent.toolbox.Toolbox;
+import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.skill.SkillsToolSource;
+import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.toolkit.ToolkitToolSource;
+import io.github.oldmanpushcart.dashscope4j.agent.toolkit.Toolkit;
+import io.github.oldmanpushcart.dashscope4j.agent.toolkit.dashscope.DashscopeToolkit;
+import io.github.oldmanpushcart.dashscope4j.agent.toolkit.file.FileOpsToolkit;
+import io.github.oldmanpushcart.dashscope4j.agent.toolkit.file.TextFileOpsToolkit;
+import io.github.oldmanpushcart.dashscope4j.agent.toolkit.network.HttpToolkit;
+import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.tool.Tool;
+import io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils;
+import io.github.oldmanpushcart.dashscope4j.client.util.IOUtils;
+import io.github.oldmanpushcart.jinx.JinxConfig;
+import io.micronaut.context.annotation.Context;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * 工具箱启动器
+ */
+@Context
+class ToolboxLatcher {
+
+    private final JinxConfig config;
+    private final Toolbox toolbox;
+    private final List<Toolkit> toolkits;
+    private final List<Tool> tools;
+    private final Set<AutoCloseable> autoCloseableSet = ConcurrentHashMap.newKeySet();
+
+    public ToolboxLatcher(
+            JinxConfig config,
+            Toolbox toolbox,
+            List<Toolkit> toolkits,
+            List<Tool> tools
+    ) {
+        this.config = config;
+        this.toolbox = toolbox;
+        this.toolkits = toolkits;
+        this.tools = tools;
+    }
+
+    @PreDestroy
+    void destroy() {
+        autoCloseableSet.forEach(IOUtils::closeQuietly);
+    }
+
+    @PostConstruct
+    void init() {
+        CompletableFuture.completedStage(null)
+                .thenCompose(u -> subscribeTools())
+                .thenCompose(u -> subscribeSkills())
+                .toCompletableFuture()
+                .join();
+    }
+
+    private CompletionStage<?> subscribeTools() {
+        final var source = ToolkitToolSource.newBuilder()
+                .namespace("dashscope4j")
+                .building(builder -> {
+
+                    if (CommonUtils.isNotEmpty(tools)) {
+                        tools.forEach(builder::append);
+                    }
+
+                    if (CommonUtils.isNotEmpty(toolkits)) {
+                        toolkits.forEach(builder::append);
+                    }
+
+                })
+                .append(
+                        DashscopeToolkit.create(),
+                        HttpToolkit.newBuilder()
+                                .workspace(config.workspace())
+                                .build(),
+                        FileOpsToolkit.newBuilder()
+                                .workspace(config.workspace())
+                                .build(),
+                        TextFileOpsToolkit.newBuilder()
+                                .workspace(config.workspace())
+                                .build()
+                )
+                .build();
+        autoCloseableSet.add(source);
+        return source.initialize()
+                .thenCompose(toolbox::subscribe);
+    }
+
+    private CompletionStage<?> subscribeSkills() {
+        final var directory = config.dataspace().resolve("skills");
+        final var source = SkillsToolSource.newBuilder()
+                .namespace("dashscope4j")
+                .directory(directory)
+                .scanInterval(Duration.ofSeconds(3))
+                .build();
+        autoCloseableSet.add(source);
+        return source.initialize()
+                .thenCompose(toolbox::subscribe);
+    }
+
+
+}

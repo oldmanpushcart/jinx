@@ -8,9 +8,11 @@ import io.github.oldmanpushcart.dashscope4j.client.aigc.audio.tts.qwen_tts_realt
 import io.github.oldmanpushcart.dashscope4j.client.aigc.audio.tts.qwen_tts_realtime.event.server.ResponseAudioDeltaServerEvent;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.audio.tts.qwen_tts_realtime.event.server.ServerEvent;
 import io.github.oldmanpushcart.dashscope4j.client.api.realtime.Realtime;
+import io.github.oldmanpushcart.dashscope4j.client.util.IOUtils;
 import io.github.oldmanpushcart.jinx.core.speech.speaker.Speaker;
 import io.github.oldmanpushcart.jinx.core.speech.speaker.SpeakerManager;
 import io.github.oldmanpushcart.jinx.core.speech.speaker.SpeakerSetting;
+import jakarta.annotation.PreDestroy;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,6 +143,11 @@ public class SpeakerManagerImpl implements SpeakerManager {
         });
 
         return connectF;
+    }
+
+    @PreDestroy
+    void destroy() {
+        IOUtils.closeQuietly(channel);
     }
 
 }
