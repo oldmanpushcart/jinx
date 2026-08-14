@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * MCP条目
+ * MCP元数据
  */
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
@@ -23,6 +23,11 @@ import java.util.Map;
         @JsonSubTypes.Type(value = McpMeta.Stdio.class, name = "stdio")
 })
 public sealed interface McpMeta permits McpMeta.Http, McpMeta.Stdio {
+
+    /**
+     * @return 名称
+     */
+    String name();
 
     /**
      * @return 类型
@@ -46,6 +51,7 @@ public sealed interface McpMeta permits McpMeta.Http, McpMeta.Stdio {
     }
 
     record Http(
+            String name,
             Type type,
             URL host,
             String endpoint,
@@ -56,6 +62,7 @@ public sealed interface McpMeta permits McpMeta.Http, McpMeta.Stdio {
 
 
     record Stdio(
+            String name,
             Type type,
             String cmd,
             List<String> args,

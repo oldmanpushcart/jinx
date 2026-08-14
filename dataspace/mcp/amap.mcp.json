@@ -1,5 +1,6 @@
 {
+  "name": "amap",
   "type": "streamable-http",
-  "base-url": "https://mcp.amap.com",
+  "host": "https://mcp.amap.com",
   "endpoint": "/mcp?key=${AMAP_MAPS_API_KEY}"
 }
