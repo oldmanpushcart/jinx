@@ -57,6 +57,7 @@ public class DashscopeFactory {
                 .description(agentCfg.description())
                 .client(client)
                 .hooks(hooks)
+                .model(ChatModel.QWEN_PLUS)
                 .build();
     }
 
@@ -64,7 +65,7 @@ public class DashscopeFactory {
     public SessionHook makeSessionHook(JinxConfig config) {
         return SessionHook.newBuilder()
                 .storage(FileFragmentStorage.newBuilder()
-                        .directory(config.dataspace())
+                        .directory(config.dataspace().resolve("session"))
                         .build())
                 // 1M
                 .maxTokens(1000 * 1000)

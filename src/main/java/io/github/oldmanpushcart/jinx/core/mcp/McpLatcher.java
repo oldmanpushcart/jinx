@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.ToolSubscription;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.Toolbox;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.mcp.RecoverableMcpClientTransport;
+import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.mcp.RecoverableMcpClientTransport.ReconnectStrategies;
 import io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils;
 import io.github.oldmanpushcart.dashscope4j.client.util.IOUtils;
 import io.github.oldmanpushcart.dashscope4j.client.util.jackson.JacksonJsonUtils;
@@ -13,6 +14,7 @@ import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
 import io.modelcontextprotocol.client.transport.ServerParameters;
 import io.modelcontextprotocol.client.transport.StdioClientTransport;
+import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.spec.McpClientTransport;
 import jakarta.annotation.PostConstruct;
@@ -30,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -270,14 +273,14 @@ class McpLatcher {
      * @param factory MCP传输器工厂
      * @return 可重连的MCP传输器
      */
-    private static McpClientTransport recoverable(RecoverableMcpClientTransport.McpClientTransportFactory factory) {
+    private static McpClientTransport recoverable(Function<McpJsonMapper, McpClientTransport> factory) {
         return RecoverableMcpClientTransport.newBuilder()
                 .transportFactory(factory)
-                .reconnectStrategy(RecoverableMcpClientTransport.ReconnectStrategies.exponentialBackoff(
-                        Duration.ofMillis(500),
-                        Duration.ofSeconds(10),
-                        0.5f
-                ))
+                .reconnectStrategy(ReconnectStrategies
+                        .always()
+                        .combine(ReconnectStrategies.delay(Duration.ofSeconds(1)))
+                )
+                .pingEnabled(true)
                 .build();
     }
 
