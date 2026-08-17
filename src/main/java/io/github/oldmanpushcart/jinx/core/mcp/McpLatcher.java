@@ -8,6 +8,7 @@ import io.micronaut.context.annotation.Context;
 import jakarta.annotation.PostConstruct;
 import org.jspecify.annotations.NonNull;
 
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 
@@ -36,7 +37,7 @@ class McpLatcher {
 
             @Override
             public @NonNull Iterator<Tool> iterator() {
-                return List.of(list(), detail()).iterator();
+                return List.of(list(), detail(), remove(), append()).iterator();
             }
 
             private Tool list() {
@@ -61,7 +62,33 @@ class McpLatcher {
                         .build();
             }
 
+            private Tool remove() {
+                return FunctionTool.newBuilder()
+                        .name("mcp_meta_remove")
+                        .description("移除已加载的MCP元数据")
+                        .parameterType(RemoveSpec.class)
+                        .<RemoveSpec>function(spec -> detector.remove(spec.name()))
+                        .build();
+            }
+
+            private Tool append() {
+                return FunctionTool.newBuilder()
+                        .name("mcp_meta_append")
+                        .description("添加MCP元数据")
+                        .parameterType(AppendSpec.class)
+                        .<AppendSpec>function(spec -> detector.append(spec.path()))
+                        .build();
+            }
+
             private record DetailSpec(String name) {
+
+            }
+
+            private record RemoveSpec(String name) {
+
+            }
+
+            private record AppendSpec(Path path) {
 
             }
 

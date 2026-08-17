@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -150,6 +151,7 @@ class McpDetectorImpl implements McpDetector {
                     .handle((u, ex) -> {
                         if (null != ex) {
                             logger.warn("{} register mcp by upsert failed! mcp={};", this, mcpMeta.name(), ex);
+                            transport.close();
                         } else {
                             logger.debug("{} register mcp by upsert success. mcp={};", this, mcpMeta.name());
                         }
@@ -317,12 +319,55 @@ class McpDetectorImpl implements McpDetector {
     }
 
     @Override
-    public CompletionStage<McpMeta> append(McpMeta mcp) {
-        return null;
+    public CompletionStage<McpMeta> append(Path path) {
+        return CompletableFuture.completedStage(null)
+                .thenCompose(u -> {
+
+                    final var mcpFilename = path.getFileName().toString();
+                    final var mcpName = mcpFilename.substring(0, mcpFilename.length() - MCP_FILE_SUFFIX.length());
+
+                    try {
+                        final var mcpMeta = parseFromFile(path);
+                        final var mcpVersion = Files.getLastModifiedTime(path).toInstant();
+                        final var exist = entries.get(mcpName);
+                        if (null != exist && Objects.equals(exist.version(), mcpVersion)) {
+                            return CompletableFuture.completedStage(exist.meta());
+                        }
+
+                        // 清理已注册的
+                        Optional.ofNullable(entries.remove(mcpName))
+                                .ifPresent(IOUtils::closeQuietly);
+
+                        // 重新进行注册
+                        final var transport = recoverable(m -> toTransport(mcpMeta));
+                        return toolbox.subscribeMcp(mcpMeta.name(), transport)
+                                .thenApply(subscription -> {
+                                    final var entry = new Entry(mcpMeta.name(), mcpMeta, mcpVersion, subscription, transport);
+                                    entries.put(mcpMeta.name(), entry);
+                                    return mcpMeta;
+                                })
+                                .whenComplete((uu, ex) -> {
+                                    if (null != ex) {
+                                        logger.warn("{} register mcp by append failed! mcp={};", this, mcpMeta.name(), ex);
+                                        transport.close();
+                                    } else {
+                                        logger.debug("{} register mcp by append success. mcp={};", this, mcpMeta.name());
+                                    }
+                                });
+                    } catch (Exception e) {
+                        return CompletableFuture.failedFuture(e);
+                    }
+
+                });
     }
 
     @Override
-    public McpMeta remove(String name) {
+    public synchronized McpMeta remove(String name) {
+        final var exist = entries.remove(name);
+        if (null != exist) {
+            IOUtils.closeQuietly(exist);
+            return exist.meta();
+        }
         return null;
     }
 

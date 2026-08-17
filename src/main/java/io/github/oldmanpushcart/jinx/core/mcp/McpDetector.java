@@ -1,5 +1,6 @@
 package io.github.oldmanpushcart.jinx.core.mcp;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -25,10 +26,10 @@ public interface McpDetector {
     /**
      * 添加MCP
      *
-     * @param mcp MCP元数据
+     * @param path MCP元数据路径
      * @return 添加回调
      */
-    CompletionStage<McpMeta> append(McpMeta mcp);
+    CompletionStage<McpMeta> append(Path path);
 
     /**
      * 移除MCP
