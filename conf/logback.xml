@@ -4,7 +4,7 @@
     <!-- 主日志终端输出 -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %5level %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -16,7 +16,7 @@
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %5level %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -28,7 +28,7 @@
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %5level %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -37,8 +37,11 @@
         <appender-ref ref="DASHSCOPE_FILE"/>
     </logger>
 
+    <!-- jinx 日志 -->
+    <logger name="io.github.oldmanpushcart.jinx" level="DEBUG"/>
+
     <!-- 主日志 -->
-    <root level="debug">
+    <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>

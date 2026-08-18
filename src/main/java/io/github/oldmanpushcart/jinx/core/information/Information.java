@@ -24,7 +24,8 @@ public record Information(
     public record Computer(
             String osName,
             String osVersion,
-            String osArch
+            String osArch,
+            String home
     ) {
 
     }
@@ -42,7 +43,8 @@ public record Information(
                 new Computer(
                         System.getProperty("os.name"),
                         System.getProperty("os.version"),
-                        System.getProperty("os.arch")
+                        System.getProperty("os.arch"),
+                        System.getProperty("user.home")
                 )
         );
     }

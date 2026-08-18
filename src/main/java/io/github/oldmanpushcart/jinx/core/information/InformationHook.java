@@ -29,55 +29,55 @@ public class InformationHook implements PreparationHook {
         return List.of(settingInterceptor);
     }
 
-    private static class SettingInterceptor implements ChatInterceptor {
+    private record SettingInterceptor(Message informationMessage) implements ChatInterceptor {
 
-        private final Message informationMessage;
+            public SettingInterceptor(Information information) {
+                this(Message.system(PromptTemplate.newBuilder()
+                        .template("""
+                                ## 系统信息
+                                 - 操作系统：${os.name}
+                                 - 系统架构：${os.arch}
+                                 - 用户目录：${user.home}
+                                
+                                ## JINX 目录结构
+                                
+                                ### 配置目录：${jinx.confspace}
+                                存放 JINX 的配置文件（如 `application.yml`、`jinx.xml`、`logback.xml`）。
+                                > ️此目录内容在运行期间为只读，修改后需重启服务才能生效。
+                                
+                                ### 数据目录：${jinx.dataspace}
+                                存放 JINX 运行过程中产生和使用的持久化数据，包括技能、缓存、MCP元数据等。
+                                > 此目录需要读写权限，程序运行期间会动态读写其中的内容。
+                                
+                                ### 工作目录：${jinx.workspace}
+                                存放 JINX 工作过程中产出的临时文件和最终结果文件。
+                                > 此目录内容可随时清理，不影响服务正常运行。
+                                """)
+                        .build()
+                        .render(Map.of(
+                                "os.name", information.computer().osName(),
+                                "os.arch", information.computer().osArch(),
+                                "user.home", information.computer().home(),
+                                "jinx.confspace", information.jinx().confspace(),
+                                "jinx.dataspace", information.jinx().dataspace(),
+                                "jinx.workspace", information.jinx().workspace()
+                        ))
+                ).withCache());
+            }
 
-        public SettingInterceptor(Information information) {
-            this.informationMessage = Message.system(PromptTemplate.newBuilder()
-                    .template("""
-                            ## 系统信息
-                             - 操作系统：${os.name}
-                             - 系统架构：${os.arch}
-                            
-                            ## JINX 目录结构
-                            
-                            ### 配置目录：${jinx.confspace}
-                            存放 JINX 的配置文件（如 `application.yml`、`jinx.xml`、`logback.xml`）。
-                            > ️此目录内容在运行期间为只读，修改后需重启服务才能生效。
-                            
-                            ### 数据目录：${jinx.dataspace}
-                            存放 JINX 运行过程中产生和使用的持久化数据，包括技能、缓存、MCP元数据等。
-                            > 此目录需要读写权限，程序运行期间会动态读写其中的内容。
-                            
-                            ### 工作目录：${jinx.workspace}
-                            存放 JINX 工作过程中产出的临时文件和最终结果文件。
-                            > 此目录内容可随时清理，不影响服务正常运行。
-                            """)
-                    .build()
-                    .render(Map.of(
-                            "os.name", information.computer().osName(),
-                            "os.arch", information.computer().osArch(),
-                            "jinx.confspace", information.jinx().confspace(),
-                            "jinx.dataspace", information.jinx().dataspace(),
-                            "jinx.workspace", information.jinx().workspace()
-                    ))
-            ).withCache();
+            @Override
+            public CompletionStage<?> intercept(Chain chain, AigcRequest<Input, Output> request) {
+                final var newRequest = AigcRequest.newBuilder(request)
+                        .input(input -> Input.newBuilder(input)
+                                .messages(messages -> {
+                                    messages.add(0, informationMessage);
+                                    return messages;
+                                })
+                                .build())
+                        .build();
+                return chain.proceed(newRequest);
+            }
+
         }
-
-        @Override
-        public CompletionStage<?> intercept(Chain chain, AigcRequest<Input, Output> request) {
-            final var newRequest = AigcRequest.newBuilder(request)
-                    .input(input -> Input.newBuilder(input)
-                            .messages(messages -> {
-                                messages.add(0, informationMessage);
-                                return messages;
-                            })
-                            .build())
-                    .build();
-            return chain.proceed(newRequest);
-        }
-
-    }
 
 }
