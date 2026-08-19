@@ -5,7 +5,7 @@ jinx:
   dataspace: ./dataspace
 
   # 工作空间
-  workspace: ./workspace
+  workspace: ${HOME}
 
   # 阿里云灵积（DashScope）平台配置
   dashscope:

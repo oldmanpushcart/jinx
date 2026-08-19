@@ -139,9 +139,8 @@ class McpDetectorImpl implements McpDetector {
         final var sb = new StringBuilder();
         while (matcher.find()) {
             final var value = Optional.ofNullable(variables.get(matcher.group(1)))
-                    .map(Matcher::quoteReplacement)
                     .orElseGet(matcher::group);
-            matcher.appendReplacement(sb, value);
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(value));
         }
         matcher.appendTail(sb);
         return sb.toString();
@@ -330,8 +329,14 @@ class McpDetectorImpl implements McpDetector {
     }
 
     @Override
-    public CompletionStage<McpMeta> append(Path path) {
-        return reload(path);
+    public CompletionStage<McpMeta> reload(String name) {
+        final var mcpPath = config.dataspace()
+                .resolve("mcp")
+                .resolve("%s.mcp.json".formatted(name));
+        if (!Files.exists(mcpPath)) {
+            return CompletableFuture.failedStage(new IOException("MCP %s not exist!".formatted(name)));
+        }
+        return reload(mcpPath);
     }
 
     @Override
