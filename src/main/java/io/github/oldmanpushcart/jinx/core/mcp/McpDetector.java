@@ -1,5 +1,8 @@
 package io.github.oldmanpushcart.jinx.core.mcp;
 
+import io.github.oldmanpushcart.jinx.Constants;
+
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -8,6 +11,8 @@ import java.util.concurrent.CompletionStage;
  * MCP探测器
  */
 public interface McpDetector {
+
+    Path MCP_DIR = Constants.DATA.resolve("mcp").normalize().toAbsolutePath();
 
     /**
      * @return 已探测到的MCP元数据

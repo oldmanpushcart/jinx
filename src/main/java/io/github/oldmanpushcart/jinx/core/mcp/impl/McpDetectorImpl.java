@@ -9,7 +9,6 @@ import io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils;
 import io.github.oldmanpushcart.dashscope4j.client.util.CompletableFutureUtils;
 import io.github.oldmanpushcart.dashscope4j.client.util.IOUtils;
 import io.github.oldmanpushcart.dashscope4j.client.util.jackson.JacksonJsonUtils;
-import io.github.oldmanpushcart.jinx.JinxConfig;
 import io.github.oldmanpushcart.jinx.core.mcp.McpDetector;
 import io.github.oldmanpushcart.jinx.core.mcp.McpMeta;
 import io.micronaut.scheduling.annotation.Scheduled;
@@ -47,13 +46,11 @@ class McpDetectorImpl implements McpDetector {
     private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([^}]+)}");
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final JinxConfig config;
     private final Toolbox toolbox;
 
     private final Map<String, Entry> entries = new ConcurrentHashMap<>();
 
-    public McpDetectorImpl(JinxConfig config, Toolbox toolbox) {
-        this.config = config;
+    public McpDetectorImpl(Toolbox toolbox) {
         this.toolbox = toolbox;
     }
 
@@ -64,7 +61,7 @@ class McpDetectorImpl implements McpDetector {
      */
     private synchronized void detect() throws IOException {
 
-        final var directory = config.dataspace().resolve("mcp");
+        final var directory = MCP_DIR;
         if (!Files.isDirectory(directory)) {
             logger.warn("{} ignored by directory not exist. path={}", this, directory);
             return;
@@ -330,8 +327,7 @@ class McpDetectorImpl implements McpDetector {
 
     @Override
     public CompletionStage<McpMeta> reload(String name) {
-        final var mcpPath = config.dataspace()
-                .resolve("mcp")
+        final var mcpPath = MCP_DIR
                 .resolve("%s.mcp.json".formatted(name));
         if (!Files.exists(mcpPath)) {
             return CompletableFuture.failedStage(new IOException("MCP %s not exist!".formatted(name)));

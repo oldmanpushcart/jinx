@@ -7,6 +7,10 @@ import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.util.List;
+
 @Context
 public class JinxApplication implements AutoCloseable {
 
@@ -23,6 +27,21 @@ public class JinxApplication implements AutoCloseable {
 
     public static void main(String[] args) {
         try {
+
+            // 初始化目录
+            List.of(
+                    Constants.CONF,
+                    Constants.DATA,
+                    Constants.LOGS,
+                    Constants.WORK
+            ).forEach(path -> {
+                try {
+                    Files.createDirectories(path);
+                } catch (IOException e) {
+                    throw new RuntimeException("Init directory: %s failed!".formatted(path), e);
+                }
+            });
+
             logger.info("jinx://app starting...");
             logger.info("jinx://app logback config: {}", System.getProperty("logback.configurationFile"));
             logger.info("jinx://app micronaut config: {}", System.getProperty("micronaut.config.files"));

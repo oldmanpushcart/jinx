@@ -1,6 +1,6 @@
 package io.github.oldmanpushcart.jinx.core.persona;
 
-import io.github.oldmanpushcart.jinx.JinxConfig;
+import io.github.oldmanpushcart.jinx.Constants;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Singleton;
 
@@ -21,8 +21,8 @@ public class Persona {
     private final Path personaPath;
     private final AtomicReference<String> contentRef = new AtomicReference<>("");
 
-    public Persona(JinxConfig config) {
-        this.personaPath = config.dataspace().resolve("PERSONA.md");
+    public Persona() {
+        this.personaPath = Constants.DATA.resolve("PERSONA.md");
     }
 
     /**

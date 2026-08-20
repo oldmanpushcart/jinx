@@ -7,7 +7,7 @@ import io.github.oldmanpushcart.dashscope4j.agent.toolbox.indexer.EmbeddingToolI
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.system.RuntimeToolkit;
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.system.ShellToolkit;
 import io.github.oldmanpushcart.dashscope4j.client.DashscopeClient;
-import io.github.oldmanpushcart.jinx.JinxConfig;
+import io.github.oldmanpushcart.jinx.Constants;
 import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Singleton;
 
@@ -19,10 +19,10 @@ import java.util.stream.StreamSupport;
 class ToolboxFactory {
 
     @Singleton
-    public Toolbox makeToolbox(JinxConfig config, DashscopeClient client) {
+    public Toolbox makeToolbox(DashscopeClient client) {
         return HashMapToolbox.newBuilder()
                 .indexer(EmbeddingToolIndexer.newBuilder()
-                        .storage(config.dataspace().resolve("embedding-tool-indexer.jsonl"))
+                        .storage(Constants.DATA.resolve("embedding-tool-indexer.jsonl"))
                         .client(client)
                         .build())
                 .syncInterval(Duration.ofSeconds(3))

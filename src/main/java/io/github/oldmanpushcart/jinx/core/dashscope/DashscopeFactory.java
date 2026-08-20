@@ -10,7 +10,7 @@ import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.ChatModel;
 import io.github.oldmanpushcart.dashscope4j.client.api.interceptor.Interceptor;
 import io.github.oldmanpushcart.dashscope4j.client.api.interceptor.RetryInterceptor;
 import io.github.oldmanpushcart.dashscope4j.client.util.retry.RetryStrategies;
-import io.github.oldmanpushcart.jinx.JinxConfig;
+import io.github.oldmanpushcart.jinx.Constants;
 import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Singleton;
 import okhttp3.OkHttpClient;
@@ -62,10 +62,10 @@ public class DashscopeFactory {
     }
 
     @Singleton
-    public SessionHook makeSessionHook(JinxConfig config) {
+    public SessionHook makeSessionHook() {
         return SessionHook.newBuilder()
                 .storage(FileFragmentStorage.newBuilder()
-                        .directory(config.dataspace().resolve("session"))
+                        .directory(Constants.DATA.resolve("session"))
                         .build())
                 // 1M
                 .maxTokens(1000 * 1000)

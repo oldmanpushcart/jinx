@@ -19,7 +19,8 @@ OPTIONS:
 COMMANDS:
   session           Show the current SESSION-ID
   session new       Generate a new SESSION-ID and save locally
-  version           Request remote API to get version info
+  version           Request remote API to get version
+  info              Request remote API to get info
   help              Show this help message
   (text)            Send text directly as a chat message
   (stdin input)     Send piped text to the remote chat interface
@@ -140,8 +141,10 @@ case "$COMMAND" in
         fi
         ;;
     version)
-        curl -s "http://${IP}:${PORT}/api/version"
-        echo ""
+        curl -s "http://${IP}:${PORT}/api/version" && echo ""
+        ;;
+    info)
+        curl -s "http://${IP}:${PORT}/api/info" && echo ""
         ;;
     help)
         usage

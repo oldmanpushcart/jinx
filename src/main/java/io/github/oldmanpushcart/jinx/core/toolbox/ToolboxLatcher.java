@@ -11,7 +11,7 @@ import io.github.oldmanpushcart.dashscope4j.agent.toolkit.network.HttpToolkit;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.tool.Tool;
 import io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils;
 import io.github.oldmanpushcart.dashscope4j.client.util.IOUtils;
-import io.github.oldmanpushcart.jinx.JinxConfig;
+import io.github.oldmanpushcart.jinx.Constants;
 import io.micronaut.context.annotation.Context;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -29,19 +29,16 @@ import java.util.concurrent.ConcurrentHashMap;
 @Context
 class ToolboxLatcher {
 
-    private final JinxConfig config;
     private final Toolbox toolbox;
     private final List<Toolkit> toolkits;
     private final List<Tool> tools;
     private final Set<AutoCloseable> autoCloseableSet = ConcurrentHashMap.newKeySet();
 
     public ToolboxLatcher(
-            JinxConfig config,
             Toolbox toolbox,
             List<Toolkit> toolkits,
             List<Tool> tools
     ) {
-        this.config = config;
         this.toolbox = toolbox;
         this.toolkits = toolkits;
         this.tools = tools;
@@ -78,13 +75,13 @@ class ToolboxLatcher {
                 .append(
                         DashscopeToolkit.create(),
                         HttpToolkit.newBuilder()
-                                .workspace(config.workspace())
+                                .workspace(Constants.WORK)
                                 .build(),
                         FileOpsToolkit.newBuilder()
-                                .workspace(config.workspace())
+                                .workspace(Constants.USER_HOME)
                                 .build(),
                         TextFileOpsToolkit.newBuilder()
-                                .workspace(config.workspace())
+                                .workspace(Constants.USER_HOME)
                                 .build()
                 )
                 .build();
@@ -94,7 +91,7 @@ class ToolboxLatcher {
     }
 
     private CompletionStage<?> subscribeSkills() {
-        final var directory = config.dataspace().resolve("skills");
+        final var directory = Constants.DATA.resolve("skills");
         final var source = SkillsToolSource.newBuilder()
                 .namespace("dashscope4j")
                 .directory(directory)
