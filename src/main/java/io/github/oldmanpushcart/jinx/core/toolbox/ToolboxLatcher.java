@@ -1,7 +1,6 @@
 package io.github.oldmanpushcart.jinx.core.toolbox;
 
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.Toolbox;
-import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.skill.SkillsToolSource;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.toolkit.ToolkitToolSource;
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.Toolkit;
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.dashscope.DashscopeToolkit;
@@ -16,7 +15,6 @@ import io.micronaut.context.annotation.Context;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -53,7 +51,6 @@ class ToolboxLatcher {
     void init() {
         CompletableFuture.completedStage(null)
                 .thenCompose(u -> subscribeTools())
-                .thenCompose(u -> subscribeSkills())
                 .toCompletableFuture()
                 .join();
     }
@@ -84,18 +81,6 @@ class ToolboxLatcher {
                                 .workspace(Constants.USER_HOME)
                                 .build()
                 )
-                .build();
-        autoCloseableSet.add(source);
-        return source.initialize()
-                .thenCompose(toolbox::subscribe);
-    }
-
-    private CompletionStage<?> subscribeSkills() {
-        final var directory = Constants.DATA.resolve("skills");
-        final var source = SkillsToolSource.newBuilder()
-                .namespace("dashscope4j")
-                .directory(directory)
-                .scanInterval(Duration.ofSeconds(3))
                 .build();
         autoCloseableSet.add(source);
         return source.initialize()

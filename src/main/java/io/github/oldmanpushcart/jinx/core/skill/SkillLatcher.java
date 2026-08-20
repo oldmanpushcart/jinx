@@ -1,4 +1,4 @@
-package io.github.oldmanpushcart.jinx.core.mcp;
+package io.github.oldmanpushcart.jinx.core.skill;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -14,24 +14,24 @@ import java.util.Iterator;
 import java.util.List;
 
 @Context
-class McpLatcher {
+class SkillLatcher {
 
-    private final McpDetector detector;
+    private final SkillDetector detector;
     private final Toolbox toolbox;
 
-    McpLatcher(McpDetector detector, Toolbox toolbox) {
+    SkillLatcher(SkillDetector detector, Toolbox toolbox) {
         this.detector = detector;
         this.toolbox = toolbox;
     }
 
     @PostConstruct
     void init() {
-        toolbox.subscribeTools("jinx", mcpToolkits())
+        toolbox.subscribeTools("jinx", toolkits())
                 .toCompletableFuture()
                 .join();
     }
 
-    private Toolkit mcpToolkits() {
+    private Toolkit toolkits() {
         return new Toolkit() {
 
             @Override
@@ -41,8 +41,8 @@ class McpLatcher {
 
             private Tool list() {
                 return FunctionTool.newBuilder()
-                        .name("mcp_list")
-                        .description("列出已加载的MCP")
+                        .name("skill_list")
+                        .description("列出已加载的SKILL")
                         .parameterType(Object.class)
                         .function(u -> detector.list())
                         .build();
@@ -50,8 +50,8 @@ class McpLatcher {
 
             private Tool detail() {
                 return FunctionTool.newBuilder()
-                        .name("mcp_detail")
-                        .description("获取已加载的MCP详情")
+                        .name("skill_detail")
+                        .description("获取已加载的SKILL详情")
                         .parameterType(DetailSpec.class)
                         .<DetailSpec>function(spec -> {
                             final var name = spec.name();
@@ -62,8 +62,8 @@ class McpLatcher {
 
             private Tool reload() {
                 return FunctionTool.newBuilder()
-                        .name("mcp_reload")
-                        .description("重新加载MCP")
+                        .name("skill_reload")
+                        .description("重新加载SKILL")
                         .parameterType(ReloadSpec.class)
                         .<ReloadSpec>function(spec -> detector.reload(spec.name()))
                         .build();
@@ -72,7 +72,7 @@ class McpLatcher {
             private record DetailSpec(
 
                     @JsonProperty("name")
-                    @JsonPropertyDescription("MCP名称")
+                    @JsonPropertyDescription("SKILL名称")
                     String name
 
             ) {
@@ -82,7 +82,7 @@ class McpLatcher {
             private record ReloadSpec(
 
                     @JsonProperty("name")
-                    @JsonPropertyDescription("MCP名称")
+                    @JsonPropertyDescription("SKILL名称")
                     String name
 
             ) {

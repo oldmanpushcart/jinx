@@ -60,7 +60,6 @@ public sealed interface McpMeta permits McpMeta.Http, McpMeta.Stdio {
 
     }
 
-
     record Stdio(
             String name,
             Type type,

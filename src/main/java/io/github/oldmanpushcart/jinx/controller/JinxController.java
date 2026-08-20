@@ -1,14 +1,14 @@
 package io.github.oldmanpushcart.jinx.controller;
 
-import io.github.oldmanpushcart.dashscope4j.agent.util.PromptTemplate;
+import com.github.freva.asciitable.AsciiTable;
+import com.github.freva.asciitable.Column;
+import com.github.freva.asciitable.HorizontalAlign;
 import io.github.oldmanpushcart.jinx.Constants;
 import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherSetting;
 import io.github.oldmanpushcart.jinx.core.speech.speaker.SpeakerSetting;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
-
-import java.util.HashMap;
 
 @Controller("/api")
 public class JinxController {
@@ -33,40 +33,24 @@ public class JinxController {
 
     @Get(uri = "/info", produces = MediaType.TEXT_PLAIN)
     public String info() {
-        return PromptTemplate.newBuilder()
-                .template("""
-                        user.home=${user.home}
-                        os.name=${os.name}
-                        os.arch=${os.arch}
-                        jinx.version=${jinx.version}
-                        jinx.home=${jinx.home}
-                        jinx.conf=${jinx.conf}
-                        jinx.logs=${jinx.logs}
-                        jinx.data=${jinx.data}
-                        jinx.work=${jinx.work}
-                        jinx.speaker.enable=${jinx.speaker.enable}
-                        jinx.catcher.enable=${jinx.catcher.enable}""")
-                .build()
-                .render(new HashMap<>() {{
-
-                    // user
-                    put("user.home", System.getProperty("user.home"));
-
-                    // -- system
-                    put("os.name", System.getProperty("os.name"));
-                    put("os.arch", System.getProperty("os.arch"));
-
-                    // -- jinx
-                    put("jinx.version", Constants.VERSION);
-                    put("jinx.home", Constants.HOME);
-                    put("jinx.conf", Constants.CONF);
-                    put("jinx.logs", Constants.LOGS);
-                    put("jinx.data", Constants.DATA);
-                    put("jinx.work", Constants.WORK);
-                    put("jinx.speaker.enable", speakerSetting.isEnabled());
-                    put("jinx.catcher.enable", catcherSetting.isEnabled());
-
-                }});
+        final var header = new Column[]{
+                new Column().header("ITEM").dataAlign(HorizontalAlign.RIGHT),
+                new Column().header("VALUE").dataAlign(HorizontalAlign.LEFT)
+        };
+        final var body = new String[][]{
+                {"user.home", System.getProperty("user.home")},
+                {"os.name", System.getProperty("os.name")},
+                {"os.arch", System.getProperty("os.arch")},
+                {"jinx.version", Constants.VERSION},
+                {"jinx.home", Constants.HOME.toString()},
+                {"jinx.conf", Constants.CONF.toString()},
+                {"jinx.logs", Constants.LOGS.toString()},
+                {"jinx.data", Constants.DATA.toString()},
+                {"jinx.work", Constants.WORK.toString()},
+                {"jinx.speaker.enable", String.valueOf(speakerSetting.isEnabled())},
+                {"jinx.catcher.enable", String.valueOf(catcherSetting.isEnabled())}
+        };
+        return AsciiTable.getTable(header, body);
     }
 
 }

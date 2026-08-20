@@ -28,10 +28,10 @@ public interface McpDetector {
     Optional<McpMeta> get(String name);
 
     /**
-     * 添加MCP
+     * 重加载指定的MCP配置
      *
      * @param name 名称
-     * @return 添加回调
+     * @return 重新加载后的MCP元数据
      */
     CompletionStage<McpMeta> reload(String name);
 

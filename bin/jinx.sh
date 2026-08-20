@@ -21,6 +21,9 @@ COMMANDS:
   session new       Generate a new SESSION-ID and save locally
   version           Request remote API to get version
   info              Request remote API to get info
+  mcp list          List all loaded MCPs
+  mcp detail NAME   Show detail of a specific MCP
+  mcp reload NAME   Reload a specific MCP by name
   help              Show this help message
   (text)            Send text directly as a chat message
   (stdin input)     Send piped text to the remote chat interface
@@ -145,6 +148,34 @@ case "$COMMAND" in
         ;;
     info)
         curl -s "http://${IP}:${PORT}/api/info" && echo ""
+        ;;
+    mcp)
+        case "$2" in
+            list)
+                curl -s "http://${IP}:${PORT}/api/mcp/list" && echo ""
+                ;;
+            detail)
+                if [ -z "$3" ]; then
+                    echo "Error: mcp detail requires a NAME argument."
+                    usage
+                    exit 1
+                fi
+                curl -s "http://${IP}:${PORT}/api/mcp/detail?name=$3" && echo ""
+                ;;
+            reload)
+                if [ -z "$3" ]; then
+                    echo "Error: mcp reload requires a NAME argument."
+                    usage
+                    exit 1
+                fi
+                curl -s "http://${IP}:${PORT}/api/mcp/reload?name=$3" && echo ""
+                ;;
+            *)
+                echo "Error: Unknown mcp subcommand '$2'."
+                usage
+                exit 1
+                ;;
+        esac
         ;;
     help)
         usage

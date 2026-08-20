@@ -28,3 +28,7 @@ replay_pid*
 *.iml
 target/
 release-*/
+
+## runtime data
+data/session/
+data/embedding-tool-indexer.jsonl
