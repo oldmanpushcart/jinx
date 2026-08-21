@@ -1,6 +1,6 @@
 ---
 name: jinx
-description: Jinx 系统管理技能
+description: Jinx 系统管理技能。可以查看、更改自身状态、参数，可管理自身扩展（如：MCP、SKILL等）
 license: MIT
 ---
 
@@ -15,56 +15,72 @@ Jinx 通过两种机制扩展 AI 能力：
 
 ## 命令约定
 
-- 命令行工具固定路径：`./bin/jinx.sh`
-- 目录结构通过 `./bin/jinx.sh setting` 查看（`jinx.data`、`jinx.conf` 等）
+- 命令行工具固定路径：`sh ./bin/jinx.sh`
+- 目录结构通过 `sh ./bin/jinx.sh setting` 查看（`jinx.data`、`jinx.conf` 等）
 
 ## MCP 管理
 
 ```bash
-./bin/jinx.sh mcp list
-./bin/jinx.sh mcp detail NAME
-./bin/jinx.sh mcp reload NAME
+sh ./bin/jinx.sh mcp list
+sh ./bin/jinx.sh mcp detail NAME
+sh ./bin/jinx.sh mcp reload NAME
 ```
 
 配置文件：`{jinx.data}/mcp/{name}.mcp.json`，文件名须与 JSON `name` 一致，修改后须 reload。
 
 支持三种类型：
 
+### stdio — 本地进程
+
 ```json
-// stdio — 本地进程
 {
   "name": "服务名称",
   "type": "stdio",
   "cmd": "启动命令",
-  "args": ["参数1", "参数2"],
-  "env": {"ENV_KEY": "ENV_VALUE"}
+  "args": [
+    "参数1",
+    "参数2"
+  ],
+  "env": {
+    "ENV_KEY": "ENV_VALUE"
+  }
 }
+```
 
-// sse — Server-Sent Events
+### sse — Server-Sent Events
+
+```json
 {
   "name": "服务名称",
   "type": "sse",
   "host": "https://example.com",
   "endpoint": "/sse",
-  "headers": {"Authorization": "Bearer ${TOKEN}"}
+  "headers": {
+    "Authorization": "Bearer ${TOKEN}"
+  }
 }
+```
 
-// streamable-http — 流式 HTTP
+### streamable-http — 流式 HTTP
+
+```json
 {
   "name": "服务名称",
   "type": "streamable-http",
   "host": "https://example.com",
   "endpoint": "/mcp",
-  "headers": {"Authorization": "Bearer ${TOKEN}"}
+  "headers": {
+    "Authorization": "Bearer ${TOKEN}"
+  }
 }
 ```
 
 ## SKILL 管理
 
 ```bash
-./bin/jinx.sh skill list
-./bin/jinx.sh skill detail NAME
-./bin/jinx.sh skill reload NAME
+sh ./bin/jinx.sh skill list
+sh ./bin/jinx.sh skill detail NAME
+sh ./bin/jinx.sh skill reload NAME
 ```
 
 配置文件：`{jinx.data}/skills/{name}/SKILL.md`，目录名须与 frontmatter `name` 一致，修改后须 reload。
@@ -84,9 +100,9 @@ license: MIT
 ## 系统设置
 
 ```bash
-./bin/jinx.sh setting                       # 列出全部
-./bin/jinx.sh setting NAME                  # 查询
-./bin/jinx.sh setting NAME VALUE            # 修改
+sh ./bin/jinx.sh setting                       # 列出全部
+sh ./bin/jinx.sh setting NAME                  # 查询
+sh ./bin/jinx.sh setting NAME VALUE            # 修改
 ```
 
 可写项：`jinx.speaker.enable`（语音播报）、`jinx.catcher.enable`（语音捕获），其余只读。
