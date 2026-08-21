@@ -1,8 +1,6 @@
 package io.github.oldmanpushcart.jinx.controller;
 
-import com.github.freva.asciitable.AsciiTable;
-import com.github.freva.asciitable.Column;
-import com.github.freva.asciitable.HorizontalAlign;
+import io.github.oldmanpushcart.dashscope4j.agent.util.PromptTemplate;
 import io.github.oldmanpushcart.jinx.core.mcp.McpDetector;
 import io.github.oldmanpushcart.jinx.core.mcp.McpMeta;
 import io.micronaut.http.MediaType;
@@ -12,6 +10,7 @@ import io.micronaut.http.annotation.QueryValue;
 
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 @Controller("/api/mcp")
 public class JinxMcpController {
@@ -24,19 +23,9 @@ public class JinxMcpController {
 
     @Get(value = "/list", produces = MediaType.TEXT_PLAIN)
     public String list() {
-        final var header = new String[]{"NAME", "TYPE", "PATH"};
-        final var body = detector.list().stream()
-                .map(mcp -> new String[]{
-                        mcp.name(),
-                        mcp.type().toString().toLowerCase(),
-                        McpDetector.MCP_DIR
-                                .resolve(mcp.name())
-                                .normalize()
-                                .toAbsolutePath()
-                                .toString()
-                })
-                .toArray(String[][]::new);
-        return AsciiTable.getTable(header, body);
+        return detector.list().stream()
+                .map(McpMeta::name)
+                .collect(Collectors.joining("\n"));
     }
 
     @Get(value = "/detail", produces = MediaType.TEXT_PLAIN)
@@ -46,27 +35,48 @@ public class JinxMcpController {
             String name
 
     ) {
+
         final var mcp = detector.get(name).orElse(null);
         if (mcp == null) {
             return "MCP not found: %s".formatted(name);
         }
-        final var header = new Column[]{
-                new Column().header("ITEM").dataAlign(HorizontalAlign.RIGHT),
-                new Column().header("VALUE").dataAlign(HorizontalAlign.LEFT)
-        };
-        final var body = new String[5][2];
-        body[0] = new String[]{"NAME", mcp.name()};
-        body[1] = new String[]{"TYPE", mcp.type().toString()};
-        if (mcp instanceof McpMeta.Http http) {
-            body[2] = new String[]{"HOST", http.host().toString()};
-            body[3] = new String[]{"ENDPOINT", http.endpoint()};
-            body[4] = new String[]{"HEADERS", Objects.toString(http.headers())};
-        } else if (mcp instanceof McpMeta.Stdio stdio) {
-            body[2] = new String[]{"CMD", stdio.cmd()};
-            body[3] = new String[]{"ARGS", Objects.toString(stdio.args())};
-            body[4] = new String[]{"ENV", Objects.toString(stdio.env())};
-        }
-        return AsciiTable.getTable(header, body);
+
+        return PromptTemplate.newBuilder()
+                .template("""
+                        NAME: ${mcp.name}
+                        TYPE: ${mcp.type}
+                        ${mcp.body}
+                        """)
+                .variable("mcp.name", mcp.name())
+                .variable("mcp.type", mcp.type().toString().toLowerCase())
+                .variable("mcp.body", PromptTemplate.newBuilder()
+                        .building(bodyBuilder -> {
+                            if (mcp instanceof McpMeta.Http http) {
+                                bodyBuilder
+                                        .template("""
+                                                HTTP.HOST: ${http.host}
+                                                HTTP.ENDPOINT: ${http.endpoint}
+                                                HTTP.HEADERS: ${http.headers}
+                                                """)
+                                        .variable("http.host", http.host())
+                                        .variable("http.endpoint", http.endpoint())
+                                        .variable("http.headers", Objects.toString(http.headers()));
+                            }
+                            if (mcp instanceof McpMeta.Stdio stdio) {
+                                bodyBuilder
+                                        .template("""
+                                                STDIO.CMD: ${stdio.cmd}
+                                                STDIO.ARGS: ${stdio.args}
+                                                STDIO.ENV: ${stdio.env}
+                                                """)
+                                        .variable("stdio.cmd", stdio.cmd())
+                                        .variable("stdio.args", Objects.toString(stdio.args()))
+                                        .variable("stdio.env", Objects.toString(stdio.env()));
+                            }
+                        })
+                        .build())
+                .build()
+                .render();
     }
 
     @Get(value = "/reload", produces = MediaType.TEXT_PLAIN)

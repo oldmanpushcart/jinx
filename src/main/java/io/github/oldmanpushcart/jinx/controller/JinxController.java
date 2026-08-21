@@ -1,14 +1,14 @@
 package io.github.oldmanpushcart.jinx.controller;
 
-import com.github.freva.asciitable.AsciiTable;
-import com.github.freva.asciitable.Column;
-import com.github.freva.asciitable.HorizontalAlign;
+import io.github.oldmanpushcart.dashscope4j.agent.util.PromptTemplate;
 import io.github.oldmanpushcart.jinx.Constants;
 import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherSetting;
 import io.github.oldmanpushcart.jinx.core.speech.speaker.SpeakerSetting;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+
+import java.util.Map;
 
 @Controller("/api")
 public class JinxController {
@@ -33,24 +33,37 @@ public class JinxController {
 
     @Get(uri = "/info", produces = MediaType.TEXT_PLAIN)
     public String info() {
-        final var header = new Column[]{
-                new Column().header("ITEM").dataAlign(HorizontalAlign.RIGHT),
-                new Column().header("VALUE").dataAlign(HorizontalAlign.LEFT)
-        };
-        final var body = new String[][]{
-                {"user.home", System.getProperty("user.home")},
-                {"os.name", System.getProperty("os.name")},
-                {"os.arch", System.getProperty("os.arch")},
-                {"jinx.version", Constants.VERSION},
-                {"jinx.home", Constants.HOME.toString()},
-                {"jinx.conf", Constants.CONF.toString()},
-                {"jinx.logs", Constants.LOGS.toString()},
-                {"jinx.data", Constants.DATA.toString()},
-                {"jinx.work", Constants.WORK.toString()},
-                {"jinx.speaker.enable", String.valueOf(speakerSetting.isEnabled())},
-                {"jinx.catcher.enable", String.valueOf(catcherSetting.isEnabled())}
-        };
-        return AsciiTable.getTable(header, body);
+        return PromptTemplate.newBuilder()
+                .template("""
+                        user.home=${user.home}
+                        os.name=${os.name}
+                        os.arch=${os.arch}
+                        jinx.version=${jinx.version}
+                        jinx.home=${jinx.home}
+                        jinx.conf=${jinx.conf}
+                        jinx.logs=${jinx.logs}
+                        jinx.data=${jinx.data}
+                        jinx.work=${jinx.work}
+                        jinx.speaker.enable=${jinx.speaker.enable}
+                        jinx.catcher.enable=${jinx.catcher.enable}
+                        """)
+                .variable("user.home", System.getProperty("user.home"))
+                .variable("os.name", System.getProperty("os.name"))
+                .variable("os.arch", System.getProperty("os.arch"))
+                .variable("jinx.version", Constants.VERSION)
+                .variable("jinx.home", Constants.HOME)
+                .variable("jinx.conf", Constants.CONF)
+                .variable("jinx.logs", Constants.LOGS)
+                .variable("jinx.data", Constants.DATA)
+                .variable("jinx.work", Constants.WORK)
+                .variable("jinx.speaker.enable", String.valueOf(speakerSetting.isEnabled()))
+                .variable("jinx.catcher.enable", String.valueOf(catcherSetting.isEnabled()))
+                .build()
+                .render();
+    }
+
+    public String setting(Map<String, String> parameters) {
+
     }
 
 }

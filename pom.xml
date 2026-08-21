@@ -36,7 +36,7 @@
         <reactor-bom.version>2025.0.5</reactor-bom.version>
         <micronaut.version>4.10.23</micronaut.version>
         <micronaut.validation.version>4.12.0</micronaut.validation.version>
-        <ascii-table.version>1.13.0</ascii-table.version>
+
     </properties>
 
     <build>
@@ -265,12 +265,6 @@
             <artifactId>reactor-adapter</artifactId>
         </dependency>
 
-        <!-- TUI -->
-        <dependency>
-            <groupId>com.github.freva</groupId>
-            <artifactId>ascii-table</artifactId>
-            <version>${ascii-table.version}</version>
-        </dependency>
 
     </dependencies>
 </project>

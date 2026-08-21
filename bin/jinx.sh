@@ -24,6 +24,9 @@ COMMANDS:
   mcp list          List all loaded MCPs
   mcp detail NAME   Show detail of a specific MCP
   mcp reload NAME   Reload a specific MCP by name
+  skill list        List all loaded SKILLs
+  skill detail NAME Show detail of a specific SKILL
+  skill reload NAME Reload a specific SKILL by name
   help              Show this help message
   (text)            Send text directly as a chat message
   (stdin input)     Send piped text to the remote chat interface
@@ -172,6 +175,34 @@ case "$COMMAND" in
                 ;;
             *)
                 echo "Error: Unknown mcp subcommand '$2'."
+                usage
+                exit 1
+                ;;
+        esac
+        ;;
+    skill)
+        case "$2" in
+            list)
+                curl -s "http://${IP}:${PORT}/api/skill/list" && echo ""
+                ;;
+            detail)
+                if [ -z "$3" ]; then
+                    echo "Error: skill detail requires a NAME argument."
+                    usage
+                    exit 1
+                fi
+                curl -s "http://${IP}:${PORT}/api/skill/detail?name=$3" && echo ""
+                ;;
+            reload)
+                if [ -z "$3" ]; then
+                    echo "Error: skill reload requires a NAME argument."
+                    usage
+                    exit 1
+                fi
+                curl -s "http://${IP}:${PORT}/api/skill/reload?name=$3" && echo ""
+                ;;
+            *)
+                echo "Error: Unknown skill subcommand '$2'."
                 usage
                 exit 1
                 ;;
