@@ -1,8 +1,10 @@
 package io.github.oldmanpushcart.jinx.controller;
 
 import io.github.oldmanpushcart.jinx.Constants;
+import io.github.oldmanpushcart.jinx.core.speech.SpeechSwitchEvent;
 import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherSetting;
 import io.github.oldmanpushcart.jinx.core.speech.speaker.SpeakerSetting;
+import io.micronaut.context.event.ApplicationEventPublisher;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -22,7 +24,11 @@ public class JinxController {
 
     private final List<Setting> settings;
 
-    public JinxController(SpeakerSetting speakerSetting, CatcherSetting catcherSetting) {
+    public JinxController(
+            ApplicationEventPublisher<SpeechSwitchEvent> speechSwitchEventPublisher,
+            SpeakerSetting speakerSetting,
+            CatcherSetting catcherSetting
+    ) {
         settings = List.of(
 
                 // read-only
@@ -37,12 +43,20 @@ public class JinxController {
                 new Setting("jinx.work", Constants.WORK::toString),
 
                 // writable
-                new Setting("jinx.speaker.enable",
+                new Setting("jinx.speaker.enabled",
                         () -> String.valueOf(speakerSetting.isEnabled()),
-                        v -> speakerSetting.setEnabled(Boolean.parseBoolean(v))),
-                new Setting("jinx.catcher.enable",
+                        v -> speechSwitchEventPublisher.publishEvent(
+                                new SpeechSwitchEvent(
+                                        SpeechSwitchEvent.Type.SPEAKER,
+                                        Boolean.parseBoolean(v)
+                                ))),
+                new Setting("jinx.catcher.enabled",
                         () -> String.valueOf(catcherSetting.isEnabled()),
-                        v -> catcherSetting.setEnabled(Boolean.parseBoolean(v)))
+                        v -> speechSwitchEventPublisher.publishEvent(
+                                new SpeechSwitchEvent(
+                                        SpeechSwitchEvent.Type.CATCHER,
+                                        Boolean.parseBoolean(v)
+                                )))
 
         );
     }
