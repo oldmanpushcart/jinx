@@ -20,13 +20,14 @@ COMMANDS:
   session           Show the current SESSION-ID
   session new       Generate a new SESSION-ID and save locally
   version           Request remote API to get version
-  info              Request remote API to get info
   mcp list          List all loaded MCPs
   mcp detail NAME   Show detail of a specific MCP
   mcp reload NAME   Reload a specific MCP by name
   skill list        List all loaded SKILLs
   skill detail NAME Show detail of a specific SKILL
   skill reload NAME Reload a specific SKILL by name
+  setting [NAME [VALUE]]
+                Get/set settings, or list all if no NAME given
   help              Show this help message
   (text)            Send text directly as a chat message
   (stdin input)     Send piped text to the remote chat interface
@@ -149,9 +150,6 @@ case "$COMMAND" in
     version)
         curl -s "http://${IP}:${PORT}/api/version" && echo ""
         ;;
-    info)
-        curl -s "http://${IP}:${PORT}/api/info" && echo ""
-        ;;
     mcp)
         case "$2" in
             list)
@@ -207,6 +205,15 @@ case "$COMMAND" in
                 exit 1
                 ;;
         esac
+        ;;
+    setting)
+        if [ -n "$3" ]; then
+            curl -s "http://${IP}:${PORT}/api/setting?name=$2&value=$3" && echo ""
+        elif [ -n "$2" ]; then
+            curl -s "http://${IP}:${PORT}/api/setting?name=$2" && echo ""
+        else
+            curl -s "http://${IP}:${PORT}/api/setting" && echo ""
+        fi
         ;;
     help)
         usage

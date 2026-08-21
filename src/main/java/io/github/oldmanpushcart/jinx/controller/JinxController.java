@@ -1,24 +1,50 @@
 package io.github.oldmanpushcart.jinx.controller;
 
-import io.github.oldmanpushcart.dashscope4j.agent.util.PromptTemplate;
 import io.github.oldmanpushcart.jinx.Constants;
 import io.github.oldmanpushcart.jinx.core.speech.catcher.CatcherSetting;
 import io.github.oldmanpushcart.jinx.core.speech.speaker.SpeakerSetting;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.QueryValue;
 
-import java.util.Map;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import static io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils.isBlankString;
+import static io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils.isNotBlankString;
 
 @Controller("/api")
 public class JinxController {
 
-    private final SpeakerSetting speakerSetting;
-    private final CatcherSetting catcherSetting;
+    private final List<Setting> settings;
 
     public JinxController(SpeakerSetting speakerSetting, CatcherSetting catcherSetting) {
-        this.speakerSetting = speakerSetting;
-        this.catcherSetting = catcherSetting;
+        settings = List.of(
+
+                // read-only
+                new Setting("user.home", () -> System.getProperty("user.home")),
+                new Setting("os.name", () -> System.getProperty("os.name")),
+                new Setting("os.arch", () -> System.getProperty("os.arch")),
+                new Setting("jinx.version", () -> Constants.VERSION),
+                new Setting("jinx.home", Constants.HOME::toString),
+                new Setting("jinx.conf", Constants.CONF::toString),
+                new Setting("jinx.logs", Constants.LOGS::toString),
+                new Setting("jinx.data", Constants.DATA::toString),
+                new Setting("jinx.work", Constants.WORK::toString),
+
+                // writable
+                new Setting("jinx.speaker.enable",
+                        () -> String.valueOf(speakerSetting.isEnabled()),
+                        v -> speakerSetting.setEnabled(Boolean.parseBoolean(v))),
+                new Setting("jinx.catcher.enable",
+                        () -> String.valueOf(catcherSetting.isEnabled()),
+                        v -> catcherSetting.setEnabled(Boolean.parseBoolean(v)))
+
+        );
     }
 
     @Get(uri = "/health", produces = MediaType.TEXT_PLAIN)
@@ -31,38 +57,68 @@ public class JinxController {
         return Constants.VERSION;
     }
 
-    @Get(uri = "/info", produces = MediaType.TEXT_PLAIN)
-    public String info() {
-        return PromptTemplate.newBuilder()
-                .template("""
-                        user.home=${user.home}
-                        os.name=${os.name}
-                        os.arch=${os.arch}
-                        jinx.version=${jinx.version}
-                        jinx.home=${jinx.home}
-                        jinx.conf=${jinx.conf}
-                        jinx.logs=${jinx.logs}
-                        jinx.data=${jinx.data}
-                        jinx.work=${jinx.work}
-                        jinx.speaker.enable=${jinx.speaker.enable}
-                        jinx.catcher.enable=${jinx.catcher.enable}
-                        """)
-                .variable("user.home", System.getProperty("user.home"))
-                .variable("os.name", System.getProperty("os.name"))
-                .variable("os.arch", System.getProperty("os.arch"))
-                .variable("jinx.version", Constants.VERSION)
-                .variable("jinx.home", Constants.HOME)
-                .variable("jinx.conf", Constants.CONF)
-                .variable("jinx.logs", Constants.LOGS)
-                .variable("jinx.data", Constants.DATA)
-                .variable("jinx.work", Constants.WORK)
-                .variable("jinx.speaker.enable", String.valueOf(speakerSetting.isEnabled()))
-                .variable("jinx.catcher.enable", String.valueOf(catcherSetting.isEnabled()))
-                .build()
-                .render();
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    @Get(uri = "/setting", produces = MediaType.TEXT_PLAIN)
+    public String setting(
+
+            @QueryValue(value = "name")
+            Optional<String> nameOpt,
+
+            @QueryValue(value = "value")
+            Optional<String> valueOpt
+
+    ) {
+
+        final var name = nameOpt.orElse(null);
+        final var value = valueOpt.orElse(null);
+
+        // list all settings
+        if (isBlankString(name)) {
+            return settings.stream()
+                    .map(s -> "%s=%s".formatted(s.name(), s.get()))
+                    .collect(Collectors.joining("\n"));
+        }
+
+        // get or set a specific setting
+        final var setting = settings.stream()
+                .filter(x -> x.name().equals(name))
+                .findFirst()
+                .orElse(null);
+
+        if (setting == null) {
+            return "Unknown setting: %s".formatted(name);
+        }
+
+        if (isNotBlankString(value)) {
+            if (setting.isReadOnly()) {
+                return "Setting is read-only: %s".formatted(name);
+            }
+            setting.set(value);
+        }
+
+        return "%s=%s".formatted(name, setting.get());
     }
 
-    public String setting(Map<String, String> parameters) {
+    record Setting(String name, Supplier<String> getter, Consumer<String> setter) {
+
+        public Setting(String name, Supplier<String> getter) {
+            this(name, getter, null);
+        }
+
+        public boolean isReadOnly() {
+            return null == setter;
+        }
+
+        public String get() {
+            return getter().get();
+        }
+
+        public void set(String value) {
+            if (isReadOnly()) {
+                throw new UnsupportedOperationException("Setting is read-only: %s".formatted(name));
+            }
+            setter().accept(value);
+        }
 
     }
 
