@@ -1,17 +1,33 @@
 ---
 name: jinx
-description: Jinx 系统管理技能。可以查看、更改自身状态、参数，可管理自身扩展（如：MCP、SKILL等）
+description: Jinx AI Agent 系统管理技能。用于查看和修改系统配置（语音、日志等），管理 MCP 外部工具服务（stdio/sse/streamable-http）和 SKILL 行为编排指令，查看系统版本和会话信息，以及通过命令行与 Jinx 进行对话交互。当需要配置、调试、扩展 Jinx 系统能力时使用此技能。
 license: MIT
 ---
 
 # Jinx 系统管理
 
-Jinx 通过两种机制扩展 AI 能力：
+## 项目概览
 
-- **MCP**（外部工具服务）— 连接外部进程或 API，提供原子工具（如地图搜索、天气查询）
-- **SKILL**（行为编排指令）— 用 Markdown 教 AI 如何组合工具和步骤完成复杂任务
+Jinx 是一个基于 Java（Micronaut + DashScope4J）构建的本地 AI Agent 服务。通过 HTTP API 对外暴露对话、MCP/SKILL 管理、系统设置等接口，支持语音播报与拾音，并可通过 CLI 脚本（`jinx.sh`）进行交互和管理。
 
-两者互补：MCP 提供能力，SKILL 编排能力。
+## 目录结构
+
+```
+jinx/
+├── bin/            # 命令行工具
+├── conf/           # 配置文件
+├── data/           # 运行时数据
+├── logs/           # 日志输出
+├── work/           # 工作空间
+```
+
+| 目录 | 用途 |
+|---|---|
+| `bin/` | 命令行工具。`jinx.sh` 是 CLI 客户端（发送对话、管理 MCP/SKILL、查看设置）；`jinxd.sh` 是守护进程管理（start/stop/restart/status） |
+| `conf/` | 配置文件。`application.yml`（Micronaut 框架配置：端口、超时）；`jinx.yml`（应用配置：数据空间、DashScope、语音）；`logback.xml`（日志策略） |
+| `data/` | 运行时数据。`mcp/`（MCP 服务配置 `{name}.mcp.json`）；`skills/`（SKILL 技能定义 `{name}/SKILL.md`）；`session/`（会话记录）；`PERSONA.md`（AI 角色设定档案） |
+| `logs/` | 日志输出。`jinx.log`（主日志）；`dashscope4j.log`（DashScope SDK 日志）；按天滚动，保留 30 天 |
+| `work/` | 工作空间，供 Agent 运行时使用的临时工作目录 |
 
 ## 命令约定
 

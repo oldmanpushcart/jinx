@@ -57,7 +57,7 @@ public class DashscopeFactory {
                 .description(agentCfg.description())
                 .client(client)
                 .hooks(hooks)
-                .model(ChatModel.QWEN_PLUS)
+                .model(ChatModel.QWEN_FLASH)
                 .build();
     }
 
