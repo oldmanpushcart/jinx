@@ -1,4 +1,4 @@
-package io.github.oldmanpushcart.jinx.extra.chat.cli;
+package io.github.oldmanpushcart.jinx.extra.common;
 
 import io.github.oldmanpushcart.dashscope4j.agent.Agent;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.Message;
@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 /**
  * chat — 发送对话消息（流式输出）
@@ -34,8 +36,8 @@ class ChatCli implements Cli {
     }
 
     @Override
-    public String description() {
-        return "Send a chat message.";
+    public List<Item> usage() {
+        return List.of(new Item("chat [MESSAGE...]", "Send a chat message."));
     }
 
     @Override

@@ -1,13 +1,14 @@
-package io.github.oldmanpushcart.jinx.extra.persona.cli;
+package io.github.oldmanpushcart.jinx.extra.persona;
 
 import io.github.oldmanpushcart.jinx.cli.Cli;
-import io.github.oldmanpushcart.jinx.extra.persona.Persona;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 /**
- * persona 主命令 — 查看当前人格内容
+ * persona — 管理 AI 人格
  */
 @Singleton
 class PersonaCli implements Cli {
@@ -24,12 +25,23 @@ class PersonaCli implements Cli {
     }
 
     @Override
-    public String description() {
-        return "Manage AI persona.";
+    public List<Item> usage() {
+        return List.of(
+                new Item("persona", "Manage AI persona."),
+                new Item("persona reload", "Reload persona from file.")
+        );
     }
 
     @Override
     public Publisher<String> execute(Context ctx) {
+        final var args = ctx.args();
+        if (!args.isEmpty() && "reload".equals(args.get(0))) {
+            return Mono.fromCallable(() -> {
+                persona.load();
+                return "Persona reloaded.";
+            });
+        }
+
         final var content = persona.content();
         return Mono.just(content.isBlank() ? "(persona is empty)" : content);
     }

@@ -1,4 +1,4 @@
-package io.github.oldmanpushcart.jinx.extra.setting.cli;
+package io.github.oldmanpushcart.jinx.extra.common;
 
 import io.github.oldmanpushcart.jinx.Constants;
 import io.github.oldmanpushcart.jinx.cli.Cli;
@@ -74,8 +74,8 @@ class SettingCli implements Cli {
     }
 
     @Override
-    public String description() {
-        return "View or modify system settings.";
+    public List<Item> usage() {
+        return List.of(new Item("setting [NAME [VALUE]]", "View or modify system settings."));
     }
 
     @Override

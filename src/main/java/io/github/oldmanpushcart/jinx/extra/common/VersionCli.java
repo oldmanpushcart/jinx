@@ -1,10 +1,12 @@
-package io.github.oldmanpushcart.jinx.extra.version.cli;
+package io.github.oldmanpushcart.jinx.extra.common;
 
 import io.github.oldmanpushcart.jinx.Constants;
 import io.github.oldmanpushcart.jinx.cli.Cli;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 /**
  * version — 显示版本信息
@@ -18,8 +20,8 @@ class VersionCli implements Cli {
     }
 
     @Override
-    public String description() {
-        return "Show version information.";
+    public List<Item> usage() {
+        return List.of(new Item("version", "Show version information."));
     }
 
     @Override

@@ -1,24 +1,24 @@
-package io.github.oldmanpushcart.jinx.extra.mcp.cli;
+package io.github.oldmanpushcart.jinx.extra.mcp;
 
 import io.github.oldmanpushcart.dashscope4j.agent.util.PromptTemplate;
 import io.github.oldmanpushcart.jinx.cli.Cli;
-import io.github.oldmanpushcart.jinx.extra.mcp.McpDetector;
-import io.github.oldmanpushcart.jinx.extra.mcp.McpMeta;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
- * mcp detail NAME — 查看指定 MCP 的详细信息
+ * mcp — 管理 MCP 服务
  */
 @Singleton
-class McpDetailCli implements Cli {
+class McpCli implements Cli {
 
     private final McpDetector detector;
 
-    public McpDetailCli(McpDetector detector) {
+    public McpCli(McpDetector detector) {
         this.detector = detector;
     }
 
@@ -28,29 +28,54 @@ class McpDetailCli implements Cli {
     }
 
     @Override
-    public String sub() {
-        return "detail";
-    }
-
-    @Override
-    public String description() {
-        return "Show detail of a specific MCP";
+    public List<Item> usage() {
+        return List.of(
+                new Item("mcp", "Manage MCP services."),
+                new Item("mcp list", "List all loaded MCPs."),
+                new Item("mcp detail <NAME>", "Show detail of a specific MCP."),
+                new Item("mcp reload <NAME>", "Reload a specific MCP.")
+        );
     }
 
     @Override
     public Publisher<String> execute(Context ctx) {
         final var args = ctx.args();
         if (args.isEmpty()) {
-            return Mono.just("Usage: mcp detail NAME");
+            return Mono.just("Usage: mcp <list|detail|reload>");
         }
 
+        return switch (args.get(0)) {
+            case "list" -> list();
+            case "detail" -> detail(args.subList(1, args.size()));
+            case "reload" -> reload(args.subList(1, args.size()));
+            default -> Mono.just("Unknown subcommand: %s".formatted(args.get(0)));
+        };
+    }
+
+    private Publisher<String> list() {
+        return Mono.just(detector.list().stream()
+                .map(McpMeta::name)
+                .collect(Collectors.joining("\n")));
+    }
+
+    private Publisher<String> detail(List<String> args) {
+        if (args.isEmpty()) {
+            return Mono.just("Usage: mcp detail <NAME>");
+        }
         final var name = args.get(0);
         final var mcp = detector.get(name).orElse(null);
         if (mcp == null) {
             return Mono.just("MCP not found: %s".formatted(name));
         }
-
         return Mono.just(formatDetail(mcp));
+    }
+
+    private Publisher<String> reload(List<String> args) {
+        if (args.isEmpty()) {
+            return Mono.just("Usage: mcp reload <NAME>");
+        }
+        return Mono.fromCompletionStage(detector.reload(args.get(0)))
+                .map(meta -> "MCP reloaded: %s".formatted(meta.name()));
     }
 
     private static String formatDetail(McpMeta mcp) {

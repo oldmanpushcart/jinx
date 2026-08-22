@@ -1,9 +1,11 @@
-package io.github.oldmanpushcart.jinx.extra.health.cli;
+package io.github.oldmanpushcart.jinx.extra.common;
 
 import io.github.oldmanpushcart.jinx.cli.Cli;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 /**
  * health — 健康检查
@@ -17,8 +19,8 @@ class HealthCli implements Cli {
     }
 
     @Override
-    public String description() {
-        return "Health check.";
+    public List<Item> usage() {
+        return List.of(new Item("health", "Health check."));
     }
 
     @Override
