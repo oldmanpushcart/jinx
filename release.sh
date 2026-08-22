@@ -83,6 +83,22 @@ if ! mkdir -p "$RELEASE_DIR/libs" || ! cp "$TARGET_JAR" "$RELEASE_DIR/libs/"; th
     exit 1
 fi
 
+# 复制 data 目录下的指定文件和子目录
+if ! cp data/PERSONA.md "$RELEASE_DIR/data/"; then
+    echo "Error: Failed to copy data/PERSONA.md!"
+    exit 1
+fi
+
+if ! cp -r data/mcp "$RELEASE_DIR/data/"; then
+    echo "Error: Failed to copy data/mcp directory!"
+    exit 1
+fi
+
+if ! cp -r data/skills "$RELEASE_DIR/data/"; then
+    echo "Error: Failed to copy data/skills directory!"
+    exit 1
+fi
+
 # 7. 完成提示
 echo "========================================"
 echo "Release package created successfully!"
