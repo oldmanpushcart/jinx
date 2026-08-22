@@ -1,51 +1,36 @@
 #!/bin/bash
 
-# ==========================================
-# 1. Helper Functions
-# ==========================================
+# --- Usage ---
 
 usage() {
     cat << EOF
 Usage: $0 [OPTIONS] [COMMAND]
 
-A command-line tool for interacting with the remote API.
+A command-line tool for interacting with the remote Jinx server.
 
 OPTIONS:
-  -i IP       Specify target server IP (default: 127.0.0.1)
-  -p PORT     Specify target server port (default: 8080)
-  -x          Enable debug mode (equivalent to bash -x)
-  -h          Show this help message
+  -i IP           Specify target server IP (default: 127.0.0.1)
+  -p PORT         Specify target server port (default: 8080)
+  -s SESSION_ID   Specify session ID (auto-detected from local file if omitted)
+  -x              Enable debug mode (equivalent to bash -x)
+  -h              Show this help message
 
-COMMANDS:
+LOCAL COMMANDS:
   session           Show the current SESSION-ID
   session new       Generate a new SESSION-ID and save locally
-  version           Request remote API to get version
-  mcp list          List all loaded MCPs
-  mcp detail NAME   Show detail of a specific MCP
-  mcp reload NAME   Reload a specific MCP by name
-  skill list        List all loaded SKILLs
-  skill detail NAME Show detail of a specific SKILL
-  skill reload NAME Reload a specific SKILL by name
-  setting [NAME [VALUE]]
-                Get/set settings, or list all if no NAME given
-  help              Show this help message
-  (text)            Send text directly as a chat message
-  (stdin input)     Send piped text to the remote chat interface
 
 EXAMPLES:
-  # Send local text to the chat interface
-  $0 "What day is it today?"
-
-  # Send piped text
-  echo "Hello" | $0
-
-  # Merge piped text with command text (管道内容 + 命令内容)
-  cat app.log | $0 "分析以上日志"
-
-  # Get remote version info
+  $0 chat "What day is it today?"
+  echo "Hello" | $0 chat
+  cat app.log | $0 chat "分析以上日志"
+  $0 version
+  $0 mcp list
+  $0 -s S1234567890 chat "Hello"
   $0 -i 192.168.1.50 -p 9000 version
 EOF
 }
+
+# --- Session ---
 
 generate_session() {
     local new_session="S"
@@ -53,186 +38,103 @@ generate_session() {
     for (( i=0; i<32; i++ )); do
         new_session+="${chars:RANDOM % ${#chars}:1}"
     done
-
     echo "$new_session" > "$SESSION_FILE"
-    echo "New session generated: $new_session"
-    exit 0
+    echo "$new_session"
 }
 
 get_session_id() {
     if [ ! -f "$SESSION_FILE" ]; then
         generate_session
+    else
+        cat "$SESSION_FILE"
     fi
-    cat "$SESSION_FILE"
 }
 
-# ==========================================
-# 2. Core Logic Abstraction
-# ==========================================
+# --- Remote ---
 
-send_chat_message() {
-    local message="$1"
-    local SESSION_ID
-    SESSION_ID=$(get_session_id)
-
-    if [ -z "$message" ]; then
-        echo "Error: Message is empty."
-        exit 1
+execute_remote() {
+    local cmd="$1"; shift
+    local params="cmd=${cmd}"
+    for arg in "$@"; do
+        params+="&args=${arg}"
+    done
+    local headers=()
+    if [ -n "$SESSION_ID" ]; then
+        headers+=(-H "X-Jinx-Session: $SESSION_ID")
     fi
+    curl "$CURL_FLAGS" "${headers[@]}" "http://${IP}:${PORT}/api/cli/execute?${params}" && echo ""
+}
 
-    # 无论当前环境是什么编码，直接无脑转成 UTF-8 后发送给 curl
-    if ! printf "%s" "$message" | iconv -f "$(locale charmap)" -t UTF-8//IGNORE | curl "$CURL_FLAGS" -X POST \
-         -H 'Content-Type: text/plain; charset=utf-8' \
-         --data-binary @- \
-         "http://${IP}:${PORT}/api/chat/${SESSION_ID}"; then
-        echo "Error: Failed to send message to remote API."
-        exit 1
+show_help() {
+    usage
+    echo ""
+    if ! execute_remote help 2>/dev/null; then
+        echo "(Could not fetch remote commands from server)"
     fi
-
     echo ""
 }
 
-# ==========================================
-# 3. Global Configuration & Argument Parsing
-# ==========================================
+# --- Config & Options ---
 
 IP="127.0.0.1"
 PORT="8080"
 SESSION_FILE="$HOME/.jinx.session"
+SESSION_ID=""
 CURL_FLAGS=(-fsS)
 
-# 使用内置 getopts 解析短选项（Mac/Linux 完美兼容）
-while getopts "i:p:xh" opt; do
+while getopts "i:p:s:xh" opt; do
     case $opt in
         i) IP="$OPTARG" ;;
         p) PORT="$OPTARG" ;;
-        x)
-          set -x
-          CURL_FLAGS+=(-v)
-          ;;
-        h) usage; exit 0 ;;
+        s) SESSION_ID="$OPTARG" ;;
+        x) set -x; CURL_FLAGS+=(-v) ;;
+        h) show_help; exit 0 ;;
         \?) echo "Error: Unknown option '-$OPTARG'"; usage; exit 1 ;;
         :) echo "Error: Option '-$OPTARG' requires an argument."; usage; exit 1 ;;
     esac
 done
-
-# 移除已解析的选项参数，使 $1 重新指向第一个非选项参数（即 COMMAND）
 shift $((OPTIND - 1))
 
-# ==========================================
-# 4. 核心改动：合并管道输入与命令参数
-# ==========================================
+# Resolve session ID: -s > local file
+if [ -z "$SESSION_ID" ]; then
+    SESSION_ID=$(get_session_id)
+fi
+
+# --- Command Routing ---
 
 COMMAND="$1"
 
-# 1. 尝试读取管道（标准输入）内容
-# 使用 -t 0 判断是否有管道输入，避免在没有管道时脚本卡住等待输入
-if [ -t 0 ]; then
-    STDIN_CONTENT=""
-else
-    STDIN_CONTENT=$(cat)
-fi
-
-# 2. 解析子命令
 case "$COMMAND" in
+
     session)
         if [ -z "$2" ]; then
-            get_session_id
-            exit 0
-        elif [ "$2" == "new" ]; then
-            generate_session
+            echo "$SESSION_ID"
+        elif [ "$2" = "new" ]; then
+            SESSION_ID=$(generate_session)
+            echo "New session generated: $SESSION_ID"
         else
             echo "Error: Unknown session subcommand."
             usage
             exit 1
         fi
         ;;
-    version)
-        curl -s "http://${IP}:${PORT}/api/version" && echo ""
-        ;;
-    mcp)
-        case "$2" in
-            list)
-                curl -s "http://${IP}:${PORT}/api/mcp/list" && echo ""
-                ;;
-            detail)
-                if [ -z "$3" ]; then
-                    echo "Error: mcp detail requires a NAME argument."
-                    usage
-                    exit 1
-                fi
-                curl -s "http://${IP}:${PORT}/api/mcp/detail?name=$3" && echo ""
-                ;;
-            reload)
-                if [ -z "$3" ]; then
-                    echo "Error: mcp reload requires a NAME argument."
-                    usage
-                    exit 1
-                fi
-                curl -s "http://${IP}:${PORT}/api/mcp/reload?name=$3" && echo ""
-                ;;
-            *)
-                echo "Error: Unknown mcp subcommand '$2'."
-                usage
-                exit 1
-                ;;
-        esac
-        ;;
-    skill)
-        case "$2" in
-            list)
-                curl -s "http://${IP}:${PORT}/api/skill/list" && echo ""
-                ;;
-            detail)
-                if [ -z "$3" ]; then
-                    echo "Error: skill detail requires a NAME argument."
-                    usage
-                    exit 1
-                fi
-                curl -s "http://${IP}:${PORT}/api/skill/detail?name=$3" && echo ""
-                ;;
-            reload)
-                if [ -z "$3" ]; then
-                    echo "Error: skill reload requires a NAME argument."
-                    usage
-                    exit 1
-                fi
-                curl -s "http://${IP}:${PORT}/api/skill/reload?name=$3" && echo ""
-                ;;
-            *)
-                echo "Error: Unknown skill subcommand '$2'."
-                usage
-                exit 1
-                ;;
-        esac
-        ;;
-    setting)
-        if [ -n "$3" ]; then
-            curl -s "http://${IP}:${PORT}/api/setting?name=$2&value=$3" && echo ""
-        elif [ -n "$2" ]; then
-            curl -s "http://${IP}:${PORT}/api/setting?name=$2" && echo ""
-        else
-            curl -s "http://${IP}:${PORT}/api/setting" && echo ""
-        fi
-        ;;
-    help)
-        usage
-        exit 0
-        ;;
+
     "")
-        # 没有命令参数，仅发送管道内容
-        send_chat_message "$STDIN_CONTENT"
+        usage
+        exit 1
         ;;
+
     *)
-        # 有命令参数（如 "总共多少行?"）
-        # 判断是否有管道内容，进行智能拼接
-        if [ -n "$STDIN_CONTENT" ]; then
-            # 既有管道又有命令，中间加换行符拼接
-            FINAL_MESSAGE="${STDIN_CONTENT}"$'\n'"${COMMAND}"
+        shift
+        if [ ! -t 0 ]; then
+            local_stdin=$(cat)
+            if [ $# -gt 0 ]; then
+                execute_remote "$COMMAND" "$local_stdin"$'\n'"$*"
+            else
+                execute_remote "$COMMAND" "$local_stdin"
+            fi
         else
-            # 只有命令参数，没有管道
-            FINAL_MESSAGE="$COMMAND"
+            execute_remote "$COMMAND" "$@"
         fi
-        send_chat_message "$FINAL_MESSAGE"
         ;;
 esac

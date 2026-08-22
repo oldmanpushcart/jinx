@@ -10,6 +10,8 @@ license: MIT
 
 Jinx 是一个基于 Java（Micronaut + DashScope4J）构建的本地 AI Agent 服务。通过 HTTP API 对外暴露对话、MCP/SKILL 管理、系统设置等接口，支持语音播报与拾音，并可通过 CLI 脚本（`jinx.sh`）进行交互和管理。
 
+命令架构采用 **Cli 接口 + CliController 自动发现** 模式：每个命令是一个独立的 `@Singleton` Bean，实现 `Cli` 接口，由 `CliController` 自动收集和路由。新增命令只需新建类，无需修改现有代码。
+
 ## 目录结构
 
 ```
@@ -18,7 +20,12 @@ jinx/
 ├── conf/           # 配置文件
 ├── data/           # 运行时数据
 ├── logs/           # 日志输出
+├── src/            # Java 源代码
 ├── work/           # 工作空间
+├── libs/           # （发布包）FatJar
+├── target/         # Maven 构建输出
+├── release.sh      # 发布打包脚本
+└── pom.xml         # Maven 项目配置
 ```
 
 | 目录 | 用途 |
@@ -27,12 +34,17 @@ jinx/
 | `conf/` | 配置文件。`application.yml`（Micronaut 框架配置：端口、超时）；`jinx.yml`（应用配置：数据空间、DashScope、语音）；`logback.xml`（日志策略） |
 | `data/` | 运行时数据。`mcp/`（MCP 服务配置 `{name}.mcp.json`）；`skills/`（SKILL 技能定义 `{name}/SKILL.md`）；`session/`（会话记录）；`PERSONA.md`（AI 角色设定档案） |
 | `logs/` | 日志输出。`jinx.log`（主日志）；`dashscope4j.log`（DashScope SDK 日志）；按天滚动，保留 30 天 |
+| `src/` | Java 源代码。`cli/`（Cli 接口与 CliController）；`controller/`（HTTP 接口层）；`core/`（基础设施：dashscope、speech、toolbox）；`extra/`（扩展命令模块，每个模块含领域代码 + `cli/` 子包的 Cli Bean） |
 | `work/` | 工作空间，供 Agent 运行时使用的临时工作目录 |
+| `libs/` | （仅发布包）存放 FatJar `jinx-{version}-all.jar`，由 `release.sh` 构建生成 |
+| `target/` | Maven 构建输出目录 |
 
 ## 命令约定
 
 - 命令行工具固定路径：`sh ./bin/jinx.sh`
-- 目录结构通过 `sh ./bin/jinx.sh setting` 查看（`jinx.data`、`jinx.conf` 等）
+- 命令分为**本地命令**（session、chat、help）和**远程命令**（其余所有，通过 `/api/cli/execute` 通用代理）
+- 远程命令由 CliController 自动发现所有 Cli Bean 并路由，新增命令无需修改 `jinx.sh`
+- `help` 命令会动态拉取服务端所有远程命令清单
 
 ## MCP 管理
 
@@ -113,6 +125,15 @@ license: MIT
 技能内容...
 ```
 
+## 人格管理
+
+```bash
+sh ./bin/jinx.sh persona                    # 查看当前人格内容
+sh ./bin/jinx.sh persona reload             # 从文件重新加载人格
+```
+
+配置文件：`{jinx.data}/PERSONA.md`，修改后须 reload。
+
 ## 系统设置
 
 ```bash
@@ -121,4 +142,18 @@ sh ./bin/jinx.sh setting NAME                  # 查询
 sh ./bin/jinx.sh setting NAME VALUE            # 修改
 ```
 
-可写项：`jinx.speaker.enable`（语音播报）、`jinx.catcher.enable`（语音捕获），其余只读。
+可写项：`jinx.speaker.enabled`（语音播报）、`jinx.catcher.enabled`（语音捕获），其余只读。
+
+## 版本查询
+
+```bash
+sh ./bin/jinx.sh version
+```
+
+## 对话
+
+```bash
+sh ./bin/jinx.sh chat "你好"                  # 发送文本
+echo "Hello" | sh ./bin/jinx.sh chat          # 管道输入
+cat app.log | sh ./bin/jinx.sh chat "分析日志"  # 管道 + 文本拼接
+```
