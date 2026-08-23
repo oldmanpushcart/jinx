@@ -36,7 +36,6 @@
         <reactor-bom.version>2025.0.5</reactor-bom.version>
         <micronaut.version>4.10.23</micronaut.version>
         <micronaut.validation.version>4.12.0</micronaut.validation.version>
-
     </properties>
 
     <build>

@@ -1,10 +1,11 @@
 package io.github.oldmanpushcart.jinx.cli;
 
-import io.micronaut.http.HttpHeaders;
+import io.micronaut.core.annotation.Introspected;
+import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MediaType;
+import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Get;
-import io.micronaut.http.annotation.QueryValue;
+import io.micronaut.http.annotation.Post;
 import org.reactivestreams.Publisher;
 
 import java.util.*;
@@ -29,31 +30,35 @@ public class CliController {
     }
 
     /**
-     * 执行指定命令
+     * 表单请求体（form-urlencoded）
      *
-     * @param cmdName 命令名称
-     * @param args    参数列表
-     * @param headers 请求头
+     * @param cmd  命令名
+     * @param args 参数列表（可重复字段）
+     */
+    @Introspected
+    public record FormBody(String cmd, List<String> args) {
+    }
+
+    /**
+     * 执行指定命令
+     * <p>
+     * 表单字段：cmd（命令名）、args（参数，可重复）。
+     * </p>
+     *
+     * @param request HTTP请求
+     * @param form    表单请求体
      * @return 执行结果
      */
-    @Get(uri = "/execute", produces = MediaType.TEXT_PLAIN)
-    public Publisher<String> execute(
+    @Post(uri = "/execute", consumes = MediaType.APPLICATION_FORM_URLENCODED, produces = MediaType.TEXT_PLAIN)
+    public Publisher<String> execute(HttpRequest<Void> request, @Body FormBody form) {
 
-            @QueryValue("cmd")
-            String cmdName,
-
-            @QueryValue(value = "args", defaultValue = "")
-            List<String> args,
-
-            HttpHeaders headers
-
-    ) {
-
-        final var filteredArgs = args.stream()
+        final var cmdName = form.cmd();
+        final var filteredArgs = Optional.ofNullable(form.args()).orElse(List.of()).stream()
+                .filter(Objects::nonNull)
                 .filter(a -> !a.isBlank())
                 .toList();
 
-        final var sessionId = headers.get("X-Jinx-Session");
+        final var sessionId = request.getHeaders().get("X-Jinx-Session");
         final var ctx = new Cli.Context(filteredArgs, sessionId);
 
         final var cli = commands.get(cmdName);

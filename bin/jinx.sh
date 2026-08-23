@@ -52,17 +52,41 @@ get_session_id() {
 
 # --- Remote ---
 
-execute_remote() {
-    local cmd="$1"; shift
-    local params="cmd=${cmd}"
-    for arg in "$@"; do
-        params+="&args=${arg}"
-    done
+TMPDIR_EXEC=""
+
+ensure_tmpdir() {
+    if [ -z "$TMPDIR_EXEC" ]; then
+        TMPDIR_EXEC=$(mktemp -d)
+    fi
+}
+
+cleanup_tmpdir() {
+    if [ -n "$TMPDIR_EXEC" ]; then
+        rm -rf "$TMPDIR_EXEC"
+        TMPDIR_EXEC=""
+    fi
+}
+
+# 提交表单到远程执行端点
+post_form() {
     local headers=()
     if [ -n "$SESSION_ID" ]; then
         headers+=(-H "X-Jinx-Session: $SESSION_ID")
     fi
-    curl "$CURL_FLAGS" "${headers[@]}" "http://${IP}:${PORT}/api/cli/execute?${params}" && echo ""
+    curl "$CURL_FLAGS" "${headers[@]}" "$@" "http://${IP}:${PORT}/api/cli/execute"
+    local rc=$?
+    echo ""
+    return $rc
+}
+
+# 提交远程命令，参数逐个内联为表单字段上传
+execute_remote() {
+    local cmd="$1"; shift
+    local data_args=(--data-urlencode "cmd=${cmd}")
+    for arg in "$@"; do
+        data_args+=(--data-urlencode "args=${arg}")
+    done
+    post_form "${data_args[@]}"
 }
 
 show_help() {
@@ -126,13 +150,31 @@ case "$COMMAND" in
 
     *)
         shift
-        if [ ! -t 0 ]; then
-            local_stdin=$(cat)
-            if [ $# -gt 0 ]; then
-                execute_remote "$COMMAND" "$local_stdin"$'\n'"$*"
-            else
-                execute_remote "$COMMAND" "$local_stdin"
+        # STDIN 输入仅对 chat 命令生效：落盘保留原始字节（含末尾换行），经临时文件上传
+        if [ "$COMMAND" = "chat" ] && [ ! -t 0 ]; then
+            ensure_tmpdir
+            stdin_file="$TMPDIR_EXEC/stdin"
+            cat > "$stdin_file"
+            if [ ! -s "$stdin_file" ] && [ $# -eq 0 ]; then
+                cleanup_tmpdir
+                echo "Error: Message is empty. (stdin 为空且未提供参数)" >&2
+                exit 1
             fi
+            if [ $# -gt 0 ]; then
+                if [ -s "$stdin_file" ]; then
+                    printf '\n%s' "$*" >> "$stdin_file"
+                else
+                    printf '%s' "$*" >> "$stdin_file"
+                fi
+            fi
+            # MSYS 环境下转换为 Windows 路径，便于原生 curl 读取
+            if command -v cygpath > /dev/null 2>&1; then
+                stdin_file=$(cygpath -m "$stdin_file")
+            fi
+            post_form --data-urlencode "cmd=${COMMAND}" --data-urlencode "args@${stdin_file}"
+            rc=$?
+            cleanup_tmpdir
+            exit $rc
         else
             execute_remote "$COMMAND" "$@"
         fi

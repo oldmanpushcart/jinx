@@ -1,6 +1,6 @@
 ---
 name: jinx
-description: Jinx CLI 管理技能。配置系统设置、管理 MCP 外部工具服务、管理 SKILL 行为编排指令、管理 AI 人格、发送对话消息、查询版本、管理会话。当需要修改 Jinx 配置、添加 MCP 服务、编辑 SKILL、重新加载人格、进行对话交互时使用。
+description: Jinx CLI 管理技能。配置系统设置、管理 MCP 外部工具服务、管理 SKILL 行为编排指令、管理 AI 人格、发送对话消息、查询版本、管理会话、创建和管理定时调度任务。当需要修改 Jinx 配置、添加 MCP 服务、编辑 SKILL、重新加载人格、进行对话交互、添加定时任务时使用。
 license: MIT
 ---
 
@@ -19,6 +19,7 @@ jinx/
 ├── data/           # 运行时数据
 │   ├── mcp/        # MCP 服务配置：{name}.mcp.json
 │   ├── skills/     # SKILL 技能定义：{name}/SKILL.md
+│   ├── cron/       # 定时任务配置：{name}.cron.json
 │   ├── session/    # 会话记录
 │   └── PERSONA.md  # AI 角色设定
 ├── logs/           # 日志（jinx.log、dashscope4j.log，按天滚动）
@@ -37,6 +38,7 @@ jinx/
 | 人格管理 | [references/PERSONA.md](references/PERSONA.md) | 管理 AI 角色设定 |
 | 系统设置 | [references/SETTING.md](references/SETTING.md) | 查看和修改系统配置 |
 | 对话 | [references/CHAT.md](references/CHAT.md) | 与 Agent 对话交互（含会话管理） |
+| 定时任务 | [references/CRON.md](references/CRON.md) | 管理定时调度任务（定时/定期执行） |
 | 版本查询 | [references/VERSION.md](references/VERSION.md) | 查看系统版本 |
 
 ## 命令行工具（jinx.sh）
