@@ -1,14 +1,13 @@
 package io.github.oldmanpushcart.jinx.extra.mcp.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.oldmanpushcart.dashscope4j.agent.toolbox.ToolSubscription;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.Toolbox;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.mcp.RecoverableMcpClientTransport;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.mcp.RecoverableMcpClientTransport.ReconnectStrategies;
 import io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils;
-import io.github.oldmanpushcart.dashscope4j.client.util.CompletableFutureUtils;
 import io.github.oldmanpushcart.dashscope4j.client.util.IOUtils;
 import io.github.oldmanpushcart.dashscope4j.client.util.jackson.JacksonJsonUtils;
+import io.github.oldmanpushcart.jinx.core.detector.FileDetector;
 import io.github.oldmanpushcart.jinx.extra.mcp.McpDetector;
 import io.github.oldmanpushcart.jinx.extra.mcp.McpMeta;
 import io.micronaut.scheduling.annotation.Scheduled;
@@ -21,18 +20,15 @@ import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.spec.McpClientTransport;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -40,86 +36,120 @@ import java.util.regex.Pattern;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Singleton
-class McpDetectorImpl implements McpDetector {
+class McpDetectorImpl extends FileDetector<McpMeta> implements McpDetector {
 
     private static final String MCP_FILE_SUFFIX = ".mcp.json";
     private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([^}]+)}");
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Toolbox toolbox;
-
-    private final Map<String, Entry> entries = new ConcurrentHashMap<>();
 
     public McpDetectorImpl(Toolbox toolbox) {
         this.toolbox = toolbox;
     }
 
-    /**
-     * 检测MCP并完成注册
-     *
-     * @throws IOException 检测失败
-     */
-    private synchronized void detect() throws IOException {
+    @PostConstruct
+    void init() {
+        detectQuietly("init");
+    }
 
-        final var directory = MCP_DIR;
-        if (!Files.isDirectory(directory)) {
-            logger.warn("{} ignored by directory not exist. path={}", this, directory);
-            return;
-        }
+    @Scheduled(fixedDelay = "10s")
+    void scan() {
+        detectQuietly("scan");
+    }
 
-        final var removes = new ArrayList<>(entries.keySet());
+    @Override
+    public String toString() {
+        return "jinx://mcp/detector";
+    }
 
-        /*
-         * 加载MCP目录下所有的元数据文件
-         * 阻塞遍历MCP目录，找出所有的mcp元数据文件，逐一加载。
-         */
-        try (final var __stream__ = Files.list(directory)) {
-            __stream__
-                    .filter(Files::isRegularFile)
-                    .filter(McpDetectorImpl::isMcpFile)
-                    .forEach(mcpPath -> {
+    // ---- FileDetector钩子实现 ----
 
-                        try {
-                            reload(mcpPath)
-                                    .thenAccept(mcpMeta -> removes.remove(mcpMeta.name()))
-                                    .toCompletableFuture()
-                                    .join();
-                        } catch (Exception ex) {
-                            final var cause = CompletableFutureUtils.unwrapEx(ex);
-                            logger.warn("{} detect ignored. path={}", this, mcpPath, cause);
-                        }
+    @Override
+    protected Path directory() {
+        return MCP_DIR;
+    }
 
-                    });
-        }
-
-        // 取消对已失效的MCP的订阅
-        removes.forEach(this::remove);
-
+    @Override
+    protected Path pathOf(String name) {
+        return MCP_DIR.resolve("%s%s".formatted(name, MCP_FILE_SUFFIX));
     }
 
     /**
      * 是否是MCP文件
      *
-     * @param mcpPath MCP路径
+     * @param path 路径
      * @return TRUE | FALSE
      */
-    private static boolean isMcpFile(Path mcpPath) {
-        return mcpPath.getFileName().toString().endsWith(MCP_FILE_SUFFIX);
+    @Override
+    protected boolean isTarget(Path path) {
+        return Files.isRegularFile(path)
+                && path.getFileName().toString().endsWith(MCP_FILE_SUFFIX);
+    }
+
+    @Override
+    protected String nameOf(Path path) {
+        final var filename = path.getFileName().toString();
+        return filename.substring(0, filename.length() - MCP_FILE_SUFFIX.length());
     }
 
     /**
      * 从文件解析MCP元数据
      *
-     * @param mcpPath MCP文件路径
+     * @param path MCP文件路径
      * @return MCP元数据
      * @throws IOException 解析失败
      */
-    private static McpMeta parseFromFile(Path mcpPath) throws IOException {
-        final var rawMcpJson = Files.readString(mcpPath, UTF_8);
+    @Override
+    protected McpMeta parse(Path path) throws IOException {
+        final var rawMcpJson = Files.readString(path, UTF_8);
         final var mcpJson = replaceHolder(rawMcpJson, System.getenv());
         return JacksonJsonUtils.toObject(mcpJson, McpMeta.class);
     }
 
+    @Override
+    protected String nameOf(McpMeta meta) {
+        return meta.name();
+    }
+
+    @Override
+    protected Instant versionOf(Path path, McpMeta meta) throws IOException {
+        return Files.getLastModifiedTime(path).toInstant();
+    }
+
+    /**
+     * 激活MCP：连接MCP服务并订阅其工具
+     *
+     * @param name    MCP名称
+     * @param meta    MCP元数据
+     * @param version 版本指纹
+     * @return 资源句柄（关闭订阅和传输器）
+     */
+    @Override
+    protected CompletionStage<AutoCloseable> activate(String name, McpMeta meta, Instant version) {
+        final var transport = recoverable(_m -> toTransport(meta));
+        return toolbox.subscribeMcp(meta.name(), transport)
+
+                /*
+                 * 连接重构后就需要重新进行注册
+                 * 注册的时候会逐出之前已注册的MCP并关闭，所以这里就算发生了并发，也只会有最后一个注册成功的生效。
+                 */
+                .thenApply(subscription -> (AutoCloseable) () -> {
+                    IOUtils.closeQuietly(subscription);
+                    transport.close();
+                })
+
+                /*
+                 * 连接失败或者注册失败，则需要关闭之前已创建的transport，
+                 * 避免资源泄漏。
+                 */
+                .whenComplete((resource, ex) -> {
+                    if (null != ex) {
+                        transport.close();
+                    }
+                });
+    }
+
+    // ---- MCP专属逻辑 ----
 
     /**
      * 占位符替换
@@ -211,158 +241,6 @@ class McpDetectorImpl implements McpDetector {
                 )
                 .pingEnabled(true)
                 .build();
-    }
-
-    @PostConstruct
-    void init() {
-        try {
-            detect();
-        } catch (IOException e) {
-            logger.warn("{}/init detect ignored by error!", this, e);
-        }
-    }
-
-    @Scheduled(fixedDelay = "10s")
-    void scan() {
-        try {
-            detect();
-        } catch (IOException e) {
-            logger.warn("{}/scan detect ignored by error!", this, e);
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "jinx://mcp/detector";
-    }
-
-    @Override
-    public List<McpMeta> list() {
-        return entries.values()
-                .stream()
-                .map(Entry::meta)
-                .toList();
-    }
-
-    @Override
-    public Optional<McpMeta> get(String name) {
-        return Optional.ofNullable(entries.get(name))
-                .map(Entry::meta);
-    }
-
-    /**
-     * 重加载指定的MCP配置
-     *
-     * @param mcpPath MCP文件路径
-     * @return MCP元数据
-     */
-    private CompletionStage<McpMeta> reload(Path mcpPath) {
-        final var mcpFilename = mcpPath.getFileName().toString();
-        final var mcpName = mcpFilename.substring(0, mcpFilename.length() - MCP_FILE_SUFFIX.length());
-        return CompletableFuture.completedStage(null)
-                .thenCompose(_u -> {
-
-                    try {
-
-                        /*
-                         * 检查已注册的版本和当前版本是否一致
-                         * 如果一致就不用重新加载了
-                         */
-                        final var mcpVersion = Files.getLastModifiedTime(mcpPath).toInstant();
-                        final var exist = entries.get(mcpName);
-                        if (null != exist && Objects.equals(exist.version(), mcpVersion)) {
-                            return CompletableFuture.completedStage(exist.meta());
-                        }
-
-                        /*
-                         * 检查MCP名称是否和期望的一致
-                         * 要求是MCP文件名中的名称必须和MCP元数据中的名称一致
-                         *
-                         * amap.mc.json为例
-                         * 期待的名称就是：amap，元数据中配置的名称也必须是amap
-                         */
-                        final var mcpMeta = parseFromFile(mcpPath);
-                        if (!Objects.equals(mcpName, mcpMeta.name())) {
-                            return CompletableFuture.failedStage(new RuntimeException("MCP name mismatch! expect: %s, actual: %s".formatted(
-                                    mcpName,
-                                    mcpMeta.name()
-                            )));
-                        }
-
-                        // 重新进行注册
-                        final var transport = recoverable(m -> toTransport(mcpMeta));
-                        return toolbox.subscribeMcp(mcpMeta.name(), transport)
-
-                                /*
-                                 * 连接重构后就需要重新进行注册
-                                 * 注册的时候回逐出之前已注册的MCP并关闭，所以这里就算发生了并发，也只会有最后一个注册成功的生效。
-                                 */
-                                .thenApply(subscription -> {
-                                    final var entry = new Entry(mcpName, mcpMeta, mcpVersion, subscription, transport);
-                                    final var expired = entries.put(mcpName, entry);
-                                    if (null != expired) {
-                                        IOUtils.closeQuietly(expired);
-                                    }
-                                    return mcpMeta;
-                                })
-
-                                /*
-                                 * 连接失败或者注册失败，则需要关闭之前已创建的transport，
-                                 * 避免资源泄漏。
-                                 */
-                                .whenComplete((uu, ex) -> {
-                                    if (null != ex) {
-                                        logger.warn("{} register mcp failed by reload! mcp={};", this, mcpMeta.name(), ex);
-                                        transport.close();
-                                    } else {
-                                        logger.debug("{} register mcp success by reload. mcp={};", this, mcpMeta.name());
-                                    }
-                                });
-                    } catch (Exception e) {
-                        return CompletableFuture.failedFuture(e);
-                    }
-                });
-
-    }
-
-    @Override
-    public CompletionStage<McpMeta> reload(String name) {
-        final var mcpPath = MCP_DIR
-                .resolve("%s.mcp.json".formatted(name));
-        if (!Files.exists(mcpPath)) {
-            return CompletableFuture.failedStage(new IOException("MCP %s not exist!".formatted(name)));
-        }
-        return reload(mcpPath);
-    }
-
-    /**
-     * 移除已注册的MCP（仅供内部检测逻辑使用）
-     *
-     * @param name MCP名称
-     * @return 移除的MCP元数据
-     */
-    private synchronized McpMeta remove(String name) {
-        final var exist = entries.remove(name);
-        if (null != exist) {
-            IOUtils.closeQuietly(exist);
-            return exist.meta();
-        }
-        return null;
-    }
-
-    private record Entry(
-            String name,
-            McpMeta meta,
-            Instant version,
-            ToolSubscription subscription,
-            McpClientTransport transport
-    ) implements AutoCloseable {
-
-        @Override
-        public void close() {
-            IOUtils.closeQuietly(subscription);
-            transport.close();
-        }
     }
 
 }

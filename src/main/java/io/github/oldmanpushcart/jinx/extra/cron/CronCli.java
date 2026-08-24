@@ -5,6 +5,7 @@ import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -83,11 +84,13 @@ class CronCli implements Cli {
                 CRON: %s
                 PROMPT: %s
                 MODE: %s
+                SESSION: %s
                 ENABLED: %s""".formatted(
                 meta.name(),
                 meta.cron(),
                 meta.prompt(),
                 meta.mode(),
+                meta.sessionId(),
                 Boolean.toString(meta.enabled())
         ));
     }
@@ -97,11 +100,10 @@ class CronCli implements Cli {
             return Mono.just("Usage: cron reload <NAME>");
         }
         final var name = args.get(0);
-        final var meta = detector.reload(name);
-        if (meta == null) {
-            return Mono.just("Cron task not found: %s".formatted(name));
-        }
-        return Mono.just("Cron task reloaded: %s".formatted(name));
+        return Mono.fromCompletionStage(detector.reload(name))
+                .map(_meta -> "Cron task reloaded: %s".formatted(name))
+                .onErrorResume(IOException.class, _ex -> Mono.just("Cron task not found: %s".formatted(name)))
+                .onErrorResume(ex -> Mono.just("Cron task reload failed: %s".formatted(name)));
     }
 
 }

@@ -12,7 +12,12 @@ sh ./bin/jinx.sh cron reload <NAME>         # 重新加载指定任务
 
 ## 创建任务
 
-通过对话创建：直接向 Agent 描述需求即可（如"每天早上 9 点提醒我查看天气"），Agent 会调用内置工具完成任务创建。
+由 Agent 通过文件编辑直接创建，步骤如下：
+
+1. 调用 `session` 工具获取当前 CHAT 会话 ID，作为 `sessionId` 字段值（任务触发后的执行结果将回写到该会话）；
+   **若获取不到会话 ID（返回为空），必须终止创建并告知用户失败原因，不得写入配置文件**；
+2. 使用文件编辑工具写入配置文件 `{jinx.data}/cron/{name}.cron.json`，格式见下节；
+3. 执行 `sh ./bin/jinx.sh cron reload <NAME>` 立即生效（或等待约 10 秒由系统自动检测生效）。
 
 ## 配置文件
 
@@ -29,7 +34,8 @@ sh ./bin/jinx.sh cron reload <NAME>         # 重新加载指定任务
   "cron": "0 */30 * * * ?",
   "prompt": "检查系统健康状态，如有异常生成报告",
   "enabled": true,
-  "mode": "delay"
+  "mode": "delay",
+  "sessionId": "S4650279831"
 }
 ```
 
@@ -40,6 +46,7 @@ sh ./bin/jinx.sh cron reload <NAME>         # 重新加载指定任务
 | `prompt` | 触发时发送给 Agent 执行的指令 |
 | `enabled` | 启停控制，`false` 表示暂停 |
 | `mode` | 调度模式（可选，缺省 `delay`），见下节 |
+| `sessionId` | CHAT 会话 ID（**必填**）：任务触发时在该会话执行并回写结果。创建前必须通过 `session` 工具获取；缺失时配置解析失败，任务不会被加载 |
 
 ## 调度模式（mode）
 
@@ -63,4 +70,4 @@ sh ./bin/jinx.sh cron reload <NAME>         # 重新加载指定任务
 
 ## 执行记录
 
-每个任务使用独立会话 `cron@{name}`，执行历史可通过该会话查询。
+任务在 `sessionId` 指定的会话中执行（即哪个会话发起的任务，结果回写到哪个会话），执行历史可通过该会话查询。
