@@ -35,12 +35,4 @@ public interface McpDetector {
      */
     CompletionStage<McpMeta> reload(String name);
 
-    /**
-     * 移除MCP
-     *
-     * @param name 名称
-     * @return 移除的MCP元数据
-     */
-    McpMeta remove(String name);
-
 }

@@ -18,6 +18,4 @@ public interface SkillDetector {
 
     CompletionStage<Skill> reload(String name);
 
-    Skill remove(String name);
-
 }

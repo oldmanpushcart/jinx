@@ -31,8 +31,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Singleton
 class CronDetectorImpl implements CronDetector {
 
-    private static final String CRON_FILE_SUFFIX = ".cron.json";
-
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final Agent agent;
 
@@ -49,11 +47,7 @@ class CronDetectorImpl implements CronDetector {
 
     @PostConstruct
     void init() {
-        try {
-            detect();
-        } catch (IOException e) {
-            logger.warn("{}/init detect ignored by error!", this, e);
-        }
+        detectQuietly("init");
     }
 
     @PreDestroy
@@ -64,10 +58,14 @@ class CronDetectorImpl implements CronDetector {
 
     @Scheduled(fixedDelay = "10s")
     void scan() {
+        detectQuietly("scan");
+    }
+
+    private void detectQuietly(String action) {
         try {
             detect();
         } catch (IOException e) {
-            logger.warn("{}/scan detect ignored by error!", this, e);
+            logger.warn("{}/{} detect ignored by error!", this, action, e);
         }
     }
 
@@ -90,68 +88,17 @@ class CronDetectorImpl implements CronDetector {
     }
 
     @Override
-    public CronMeta create(CronMeta meta) {
-        try {
-            final var json = JacksonJsonUtils.toJson(meta);
-            final var path = CRON_DIR.resolve(meta.name() + CRON_FILE_SUFFIX);
-            Files.writeString(path, json, UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Write cron file failed: %s".formatted(meta.name()), e);
-        }
-        return reload(meta.name());
-    }
-
-    @Override
     public CronMeta reload(String name) {
         final var path = CRON_DIR.resolve(name + CRON_FILE_SUFFIX);
         if (!Files.exists(path)) {
-            return null;
+            throw new RuntimeException("Cron: %s not exist!".formatted(name));
         }
-        return reload(path);
-    }
-
-    @Override
-    public CronMeta remove(String name) {
-        final var removed = removeTask(name);
-        if (null != removed) {
-            // 删除磁盘文件
-            try {
-                Files.deleteIfExists(CRON_DIR.resolve(name + CRON_FILE_SUFFIX));
-            } catch (IOException e) {
-                logger.warn("{} delete cron file failed. name={}", this, name, e);
-            }
-            return removed.meta();
-        }
-        return null;
-    }
-
-    @Override
-    public CronMeta pause(String name) {
-        final var task = tasks.get(name);
-        if (null != task) {
-            // 更新文件 enabled=false
-            final var updated = new CronMeta(task.meta().name(), task.meta().cron(), task.meta().prompt(), false, task.meta().mode());
-            writeMeta(updated);
-            putTask(new CronTask(updated, task.version(), null));
-            return updated;
-        }
-        return null;
-    }
-
-    @Override
-    public CronMeta resume(String name) {
-        final var task = tasks.get(name);
-        if (null != task) {
-            final var updated = new CronMeta(task.meta().name(), task.meta().cron(), task.meta().prompt(), true, task.meta().mode());
-            writeMeta(updated);
-            return reload(updated.name());
-        }
-        return null;
+        return reload(path).meta();
     }
 
     // ---- 文件检测 ----
-
     private synchronized void detect() throws IOException {
+
         final var directory = CRON_DIR;
         if (!Files.isDirectory(directory)) {
             return;
@@ -164,8 +111,7 @@ class CronDetectorImpl implements CronDetector {
                     .filter(CronDetectorImpl::isCronFile)
                     .forEach(cronPath -> {
                         try {
-                            final var meta = reload(cronPath);
-                            removes.remove(meta.name());
+                            removes.remove(reload(cronPath).name());
                         } catch (Exception ex) {
                             logger.warn("{} detect ignored. path={}", this, cronPath, ex);
                         }
@@ -179,20 +125,21 @@ class CronDetectorImpl implements CronDetector {
         return path.getFileName().toString().endsWith(CRON_FILE_SUFFIX);
     }
 
-    private CronMeta reload(Path cronPath) {
-        final var filename = cronPath.getFileName().toString();
+    private CronTask reload(Path path) {
+        final var filename = path.getFileName().toString();
         final var name = filename.substring(0, filename.length() - CRON_FILE_SUFFIX.length());
 
         try {
+
             // 版本检查
-            final var version = Files.getLastModifiedTime(cronPath).toInstant();
+            final var version = Files.getLastModifiedTime(path).toInstant();
             final var exist = tasks.get(name);
             if (null != exist && Objects.equals(exist.version(), version)) {
-                return exist.meta();
+                return exist;
             }
 
             // 解析文件
-            final var json = Files.readString(cronPath, UTF_8);
+            final var json = Files.readString(path, UTF_8);
             final var meta = JacksonJsonUtils.toObject(json, CronMeta.class);
 
             // 名称校验
@@ -204,12 +151,14 @@ class CronDetectorImpl implements CronDetector {
             }
 
             // 创建新任务（逐出旧任务时自动关闭），启用则调度
-            putTask(createTask(meta, version));
-            return meta;
+            final var task = createTask(meta, version);
+            putTask(task);
+            return task;
 
         } catch (IOException e) {
-            throw new UncheckedIOException("Reload cron file failed: %s".formatted(cronPath), e);
+            throw new UncheckedIOException("Reload cron file failed: %s".formatted(path), e);
         }
+
     }
 
     // ---- 任务生命周期：tasks 的唯一写入口 ----
@@ -218,21 +167,14 @@ class CronDetectorImpl implements CronDetector {
      * 放入任务：被逐出的旧任务一律关闭（已完成则关闭为空操作）。
      */
     private void putTask(CronTask task) {
-        final var expired = tasks.put(task.meta().name(), task);
-        if (null != expired) {
-            IOUtils.closeQuietly(expired);
-        }
+        IOUtils.closeQuietly(tasks.put(task.name(), task));
     }
 
     /**
      * 逐出任务：逐出即关闭。
      */
-    private CronTask removeTask(String name) {
-        final var removed = tasks.remove(name);
-        if (null != removed) {
-            IOUtils.closeQuietly(removed);
-        }
-        return removed;
+    private void removeTask(String name) {
+        IOUtils.closeQuietly(tasks.remove(name));
     }
 
     // ---- 调度引擎：单次调度 + 自续期 ----
@@ -245,20 +187,7 @@ class CronDetectorImpl implements CronDetector {
             return new CronTask(meta, version, null);
         }
         try {
-            final var cronExpr = CronExpression.create(meta.cron());
-            final var next = nextTimeAfter(cronExpr, Instant.now());
-            if (null == next) {
-                logger.info("{} cron task expired permanently, stop scheduling: name={}", this, meta.name());
-                return new CronTask(meta, version, null);
-            }
-            final var delay = Math.max(Duration.between(Instant.now(), next).toMillis(), 0);
-            final var future = scheduler.schedule(
-                    () -> fire(meta, version, cronExpr),
-                    delay,
-                    TimeUnit.MILLISECONDS
-            );
-            logger.debug("{} scheduled cron task: name={}, cron={}, mode={}, nextRun={}",
-                    this, meta.name(), meta.cron(), meta.mode(), next);
+            final var future = scheduleNext(meta, version, CronExpression.create(meta.cron()), Instant.now());
             return new CronTask(meta, version, future);
         } catch (Exception e) {
             logger.warn("{} failed to schedule cron task: name={}", this, meta.name(), e);
@@ -266,83 +195,96 @@ class CronDetectorImpl implements CronDetector {
         }
     }
 
-    private void fire(CronMeta meta, Instant version, CronExpression cronExpr) {
+    private void fire(CronTask task) {
 
         // 任务已被删除或替换，不再执行与续期（防复活）
-        if (!isCurrent(meta, version)) {
+        if (!isCurrent(task)) {
             return;
         }
 
+        final var meta = task.meta();
         logger.info("{} executing cron task: name={}", this, meta.name());
+
+        final var cronExpr = CronExpression.create(meta.cron());
 
         // FIXED 模式：触发后立即按触发时刻续期，不等待执行完成（允许并行）
         if (CronMeta.Mode.FIXED == meta.mode()) {
-            renew(meta, version, cronExpr, Instant.now());
+            renew(task, cronExpr, Instant.now());
         }
 
-        final var sessionId = "cron@%s".formatted(meta.name());
-        final var inbound = Message.user(meta.prompt());
-
-        // 触发即走：只关心执行完成与否，不关心输出；调度线程不阻塞等待
-        Flux.from(agent.flow(sessionId, inbound))
+        // 触发即走：只关心执行完成与否，不关心输出；调度线程不阻塞等待。
+        // DELAY 模式：执行完成（或失败）后，按完成时刻续期下一次触发。
+        Flux.from(agent.flow("cron@%s".formatted(meta.name()), Message.user(meta.prompt())))
                 .timeout(Duration.ofMinutes(5))
                 .subscribe(
                         msg -> {
                         },
                         error -> {
                             logger.warn("{} cron task failed: name={}", this, meta.name(), error);
-                            renewIfDelay(meta, version, cronExpr);
+                            renewIfDelay(task, cronExpr);
                         },
                         () -> {
                             logger.info("{} cron task completed: name={}", this, meta.name());
-                            renewIfDelay(meta, version, cronExpr);
+                            renewIfDelay(task, cronExpr);
                         }
                 );
     }
 
-    /**
-     * DELAY 模式：执行完成（或失败）后，按完成时刻续期下一次触发。
-     */
-    private void renewIfDelay(CronMeta meta, Instant version, CronExpression cronExpr) {
-        if (CronMeta.Mode.DELAY == meta.mode()) {
-            renew(meta, version, cronExpr, Instant.now());
+    private void renewIfDelay(CronTask task, CronExpression cronExpr) {
+        if (CronMeta.Mode.DELAY == task.meta().mode()) {
+            renew(task, cronExpr, Instant.now());
         }
     }
 
     /**
      * 防复活校验：任务被替换时必然伴随 version 或 meta 变化（不变式）。
      */
-    private boolean isCurrent(CronMeta meta, Instant version) {
-        final var current = tasks.get(meta.name());
-        return null != current
-                && Objects.equals(current.version(), version)
-                && current.meta().equals(meta);
+    private boolean isCurrent(CronTask task) {
+        return task.isCurrent(tasks.get(task.name()));
     }
 
     /**
      * 原子续期：校验 + 调度 + 替换在 compute 内完成，无中途被替换的竞态。
      */
-    private void renew(CronMeta meta, Instant version, CronExpression cronExpr, Instant from) {
-        tasks.compute(meta.name(), (name, current) -> {
-            if (null == current || !Objects.equals(current.version(), version) || !current.meta().equals(meta)) {
-                return current;   // 已被删除或替换，放弃续期
-            }
-            final var next = nextTimeAfter(cronExpr, from);
-            if (null == next) {
-                logger.info("{} cron task expired permanently, stop scheduling: name={}", this, meta.name());
+    private void renew(CronTask task, CronExpression cronExpr, Instant from) {
+        tasks.compute(task.name(), (name, current) -> {
+
+            // 已被删除或替换，放弃续期
+            if (!task.isCurrent(current)) {
                 return current;
             }
-            final var delay = Math.max(Duration.between(Instant.now(), next).toMillis(), 0);
-            final var future = scheduler.schedule(
-                    () -> fire(meta, version, cronExpr),
-                    delay,
-                    TimeUnit.MILLISECONDS
-            );
-            logger.debug("{} scheduled cron task: name={}, cron={}, mode={}, nextRun={}",
-                    this, meta.name(), meta.cron(), meta.mode(), next);
+            final var future = scheduleNext(task.meta(), task.version(), cronExpr, from);
+            if (null == future) {
+                return current;   // 永久过期，停止调度；任务保留供查询展示
+            }
             IOUtils.closeQuietly(current);   // 旧任务已触发完成，关闭为空操作
-            return new CronTask(meta, version, future);
+            return new CronTask(task.meta(), task.version(), future);
         });
+    }
+
+    /**
+     * 挂下一次单次调度；无下次触发点（永久过期）时返回 null。
+     */
+    private ScheduledFuture<?> scheduleNext(CronMeta meta, Instant version, CronExpression cronExpr, Instant from) {
+
+        // 计算下次执行时间
+        final var afterAt = nextTimeAfter(cronExpr, from);
+        if (null == afterAt) {
+            logger.info("{} cron task expired permanently, stop scheduling: name={}", this, meta.name());
+            return null;
+        }
+
+        // 计算从现在到下次执行之间的时间间隔，作为调度延迟
+        final var delay = Math.max(Duration.between(Instant.now(), afterAt).toMillis(), 0);
+
+        logger.debug("{} scheduled cron task: name={}, cron={}, mode={}, afterAt={}",
+                this,
+                meta.name(),
+                meta.cron(),
+                meta.mode(),
+                afterAt
+        );
+        return scheduler.schedule(() -> fire(new CronTask(meta, version, null)), delay, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -357,22 +299,29 @@ class CronDetectorImpl implements CronDetector {
         }
     }
 
-    private void writeMeta(CronMeta meta) {
-        try {
-            final var json = JacksonJsonUtils.toJson(meta);
-            final var path = CRON_DIR.resolve(meta.name() + CRON_FILE_SUFFIX);
-            Files.writeString(path, json, UTF_8);
-        } catch (IOException e) {
-            logger.warn("{} write cron meta failed: name={}", this, meta.name(), e);
-        }
-    }
-
     // ---- 内部记录 ----
 
     /**
      * 定时任务的运行时调度载体（{@link CronMeta} 为持久化定义）。
      */
     record CronTask(CronMeta meta, Instant version, ScheduledFuture<?> future) implements AutoCloseable {
+
+        public CronTask(CronMeta meta, Instant version) {
+            this(meta, version, null);
+        }
+
+        public String name() {
+            return meta.name();
+        }
+
+        /**
+         * 是否当前注册的任务（防复活校验的单一实现）。
+         */
+        public boolean isCurrent(CronTask other) {
+            return null != other
+                    && Objects.equals(version, other.version)
+                    && meta.equals(other.meta);
+        }
 
         @Override
         public void close() {

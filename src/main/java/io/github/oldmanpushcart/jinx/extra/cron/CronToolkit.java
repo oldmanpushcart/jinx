@@ -6,10 +6,14 @@ import io.github.oldmanpushcart.dashscope4j.agent.toolkit.Toolkit;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.tool.FunctionTool;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.tool.Tool;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.tool.ToolExecutionException;
+import io.github.oldmanpushcart.dashscope4j.client.util.jackson.JacksonJsonUtils;
 import org.jspecify.annotations.NonNull;
 
+import java.nio.file.Files;
 import java.util.Iterator;
 import java.util.List;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * 定时任务工具集
@@ -37,7 +41,9 @@ class CronToolkit implements Toolkit {
                 .<AddSpec>function(spec -> {
                     try {
                         final var meta = new CronMeta(spec.name, spec.cron, spec.prompt, true, parseMode(spec.mode));
-                        detector.create(meta);
+                        final var path = CronDetector.CRON_DIR.resolve(spec.name + CronDetector.CRON_FILE_SUFFIX);
+                        Files.writeString(path, JacksonJsonUtils.toJson(meta), UTF_8);
+                        detector.reload(spec.name);
                         return "定时任务创建成功: %s".formatted(spec.name);
                     } catch (Exception e) {
                         return ToolExecutionException.callFailed("cron$add", e);

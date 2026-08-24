@@ -81,8 +81,10 @@ class SkillDetectorImpl implements SkillDetector {
                 .thenApply(Entry::skill);
     }
 
-    @Override
-    public Skill remove(String name) {
+    /**
+     * 移除已注册的SKILL（仅供内部检测逻辑使用）
+     */
+    private Skill remove(String name) {
         final var removed = entries.remove(name);
         if (null != removed) {
             IOUtils.closeQuietly(removed);

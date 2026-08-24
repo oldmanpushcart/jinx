@@ -335,8 +335,13 @@ class McpDetectorImpl implements McpDetector {
         return reload(mcpPath);
     }
 
-    @Override
-    public synchronized McpMeta remove(String name) {
+    /**
+     * 移除已注册的MCP（仅供内部检测逻辑使用）
+     *
+     * @param name MCP名称
+     * @return 移除的MCP元数据
+     */
+    private synchronized McpMeta remove(String name) {
         final var exist = entries.remove(name);
         if (null != exist) {
             IOUtils.closeQuietly(exist);

@@ -16,6 +16,15 @@ sh ./bin/jinx.sh mcp reload <NAME>          # 重新加载指定 MCP 服务
 
 文件名须与 JSON 中 `name` 字段一致，修改配置后须执行 `reload`。
 
+## 操作说明
+
+MCP 的增删改均通过操作配置文件完成，系统每 10 秒自动扫描变更，也可执行 `mcp reload` 立即生效。
+
+- **添加**：在 `{jinx.data}/mcp/` 下写入 `{name}.mcp.json`，格式严格按下方传输类型模板，文件名须与 JSON 中 `name` 一致，然后执行 `mcp reload <NAME>` 加载并验证。
+- **修改**：直接编辑配置文件（禁止修改 `name` 字段），然后执行 `mcp reload <NAME>`；改名等同删除旧 MCP + 创建新 MCP。
+- **删除**：删除 `{jinx.data}/mcp/{name}.mcp.json` 文件，系统自动扫描移除；如需立即确认，执行 `mcp list` 验证。
+- **环境变量**：配置值中可用 `${ENV_VAR}` 语法引用系统环境变量，加载时自动替换。
+
 ## 支持的传输类型
 
 ### stdio — 本地进程

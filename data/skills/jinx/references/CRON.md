@@ -7,9 +7,7 @@
 ```bash
 sh ./bin/jinx.sh cron list                  # 列出所有定时任务
 sh ./bin/jinx.sh cron detail <NAME>         # 查看指定任务的详细信息
-sh ./bin/jinx.sh cron delete <NAME>         # 删除指定任务
-sh ./bin/jinx.sh cron pause <NAME>          # 暂停指定任务
-sh ./bin/jinx.sh cron resume <NAME>         # 恢复已暂停的任务
+sh ./bin/jinx.sh cron reload <NAME>         # 重新加载指定任务
 ```
 
 ## 创建任务
@@ -20,7 +18,10 @@ sh ./bin/jinx.sh cron resume <NAME>         # 恢复已暂停的任务
 
 路径：`{jinx.data}/cron/{name}.cron.json`
 
-文件名须与 JSON 中 `name` 字段严格一致。手动修改配置文件后由系统自动检测生效（约 10 秒内）。
+文件名须与 JSON 中 `name` 字段严格一致。手动修改配置文件后由系统自动检测生效（约 10 秒内），也可执行 `cron reload` 立即生效。
+
+- **删除任务**：删除对应的配置文件，系统自动检测移除；如需改名，等同删除旧配置 + 创建新配置。
+- **暂停/恢复任务**：修改配置文件中 `enabled` 字段（`false` 为暂停，`true` 为恢复），由系统自动检测生效。
 
 ```json
 {
