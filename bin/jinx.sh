@@ -67,9 +67,15 @@ cleanup_tmpdir() {
     fi
 }
 
+# URL编码：将 UTF-8 原始字节逐字节转换为 %XX（输出纯 ASCII）
+# 纯 ASCII 在跨进程传递时免疫任何编码转换（MSYS 下拉起原生程序会按 ANSI 代码页转换非 ASCII 参数）
+urlencode() {
+    printf '%s' "$1" | od -An -tx1 -v | tr -d ' \n' | sed 's/../%&/g'
+}
+
 # 提交表单到远程执行端点
 post_form() {
-    local headers=()
+    local headers=(-H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8")
     if [ -n "$SESSION_ID" ]; then
         headers+=(-H "X-Jinx-Session: $SESSION_ID")
     fi
@@ -79,14 +85,15 @@ post_form() {
     return $rc
 }
 
-# 提交远程命令，参数逐个内联为表单字段上传
+# 提交远程命令：shell 内拼装 %XX 编码后的表单体，经 stdin 上传
+# 请求体为纯 ASCII 且不受 argv 长度限制；参数不再经 argv 传给原生 curl
 execute_remote() {
     local cmd="$1"; shift
-    local data_args=(--data-urlencode "cmd=${cmd}")
+    local body="cmd=$(urlencode "$cmd")"
     for arg in "$@"; do
-        data_args+=(--data-urlencode "args=${arg}")
+        body="${body}&args=$(urlencode "$arg")"
     done
-    post_form "${data_args[@]}"
+    printf '%s' "$body" | post_form --data-binary @-
 }
 
 show_help() {
@@ -171,7 +178,7 @@ case "$COMMAND" in
             if command -v cygpath > /dev/null 2>&1; then
                 stdin_file=$(cygpath -m "$stdin_file")
             fi
-            post_form --data-urlencode "cmd=${COMMAND}" --data-urlencode "args@${stdin_file}"
+            post_form --data-raw "cmd=$(urlencode "$COMMAND")" --data-urlencode "args@${stdin_file}"
             rc=$?
             cleanup_tmpdir
             exit $rc
