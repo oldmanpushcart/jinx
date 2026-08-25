@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.StandardOpenOption.*;
 
 /**
  * 人格
@@ -46,20 +45,6 @@ public class Persona {
         final var content = Files.readString(personaPath, UTF_8);
         contentRef.set(content);
         return this;
-    }
-
-    /**
-     * 更新人格
-     *
-     * @param content 人格内容
-     * @throws IOException 更新失败
-     */
-    public void update(String content) throws IOException {
-        Files.writeString(
-                personaPath, content, UTF_8,
-                CREATE, TRUNCATE_EXISTING, SYNC, WRITE
-        );
-        contentRef.set(content);
     }
 
 }
