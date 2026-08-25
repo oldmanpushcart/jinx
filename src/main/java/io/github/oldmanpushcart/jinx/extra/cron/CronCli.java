@@ -103,7 +103,7 @@ class CronCli implements Cli {
         return Mono.fromCompletionStage(detector.reload(name))
                 .map(_meta -> "Cron task reloaded: %s".formatted(name))
                 .onErrorResume(IOException.class, _ex -> Mono.just("Cron task not found: %s".formatted(name)))
-                .onErrorResume(ex -> Mono.just("Cron task reload failed: %s".formatted(name)));
+                .onErrorResume(ex -> Mono.just("Cron task reload failed: %s, cause: %s".formatted(name, ex.getMessage())));
     }
 
 }

@@ -2,7 +2,7 @@
 name: jinx
 description: |
   Jinx CLI 管理技能。
-  当需要修改 Jinx 配置、添加 MCP 服务、编辑 SKILL、重新加载人格、进行对话交互、管理定时任务时使用。
+  当需要修改 Jinx 配置、添加 MCP 服务、编辑 SKILL、重新加载人格、管理用户档案、进行对话交互、管理定时任务时使用。
   
   通过 jinx.sh 命令行工具管理 Jinx 系统，涵盖以下能力：
   - 系统设置：查看和修改系统配置
@@ -11,10 +11,12 @@ description: |
   - MCP 管理：管理MCP
   - SKILL 管理：管理SKILL
   - 人格管理：管理 AI 角色设定。
+  - 用户档案：管理用户个人信息（称呼、偏好等）。当用户主动告知个人信息或要求记住其个人信息时可以激活。
   - 对话交互：与 Agent 进行对话（含会话管理）
   - 定时任务：创建和管理定时调度任务。当定时、周期性的目标时可以激活。
     - 3分钟后叫醒我
     - 每周五整理好报告并发到我邮箱
+    - 在本周三提醒我开会
   - 版本查询：查看系统版本
 license: MIT
 ---
@@ -36,7 +38,8 @@ jinx/
 │   ├── skills/     # SKILL 技能定义：{name}/SKILL.md
 │   ├── cron/       # 定时任务配置：{name}.cron.json
 │   ├── session/    # 会话记录
-│   └── PERSONA.md  # AI 角色设定
+│   ├── PERSONA.md  # AI 角色设定
+│   └── USER.md     # 用户档案（用户个人信息）
 ├── logs/           # 日志（jinx.log、dashscope4j.log，按天滚动）
 ├── work/           # Agent 工作空间
 └── libs/           # （发布包）FatJar
@@ -51,6 +54,7 @@ jinx/
 | MCP 管理 | [references/MCP.md](references/MCP.md) | 管理 MCP 外部工具服务（stdio/sse/streamable-http） |
 | SKILL 管理 | [references/SKILL-MANAGE.md](references/SKILL-MANAGE.md) | 管理 SKILL 行为编排指令 |
 | 人格管理 | [references/PERSONA.md](references/PERSONA.md) | 管理 AI 角色设定 |
+| 用户档案 | [references/USER.md](references/USER.md) | 管理用户个人信息（仅记录稳定画像，与 MEMORY 区分） |
 | 系统设置 | [references/SETTING.md](references/SETTING.md) | 查看和修改系统配置 |
 | 对话 | [references/CHAT.md](references/CHAT.md) | 与 Agent 对话交互（含会话管理） |
 | 定时任务 | [references/CRON.md](references/CRON.md) | 管理定时调度任务（定时/定期执行） |

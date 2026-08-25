@@ -1,15 +1,8 @@
 package io.github.oldmanpushcart.jinx.extra.persona;
 
-import io.github.oldmanpushcart.jinx.Constants;
-import jakarta.annotation.PostConstruct;
 import jakarta.inject.Singleton;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * 人格
@@ -17,12 +10,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Singleton
 public class Persona {
 
-    private final Path personaPath;
     private final AtomicReference<String> contentRef = new AtomicReference<>("");
-
-    public Persona() {
-        this.personaPath = Constants.DATA.resolve("PERSONA.md");
-    }
 
     /**
      * @return 人格内容
@@ -32,19 +20,12 @@ public class Persona {
     }
 
     /**
-     * 加载人格
+     * 刷新人格内容（由探测器在文件变更时调用）
      *
-     * @return 人格内容
-     * @throws IOException 加载失败
+     * @param content 人格内容
      */
-    @PostConstruct
-    public Persona load() throws IOException {
-        if (!Files.isReadable(personaPath)) {
-            return this;
-        }
-        final var content = Files.readString(personaPath, UTF_8);
+    public void refresh(String content) {
         contentRef.set(content);
-        return this;
     }
 
 }

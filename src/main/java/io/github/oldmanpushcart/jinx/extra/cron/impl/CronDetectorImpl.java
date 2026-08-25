@@ -118,6 +118,10 @@ class CronDetectorImpl extends FileDetector<CronMeta> implements CronDetector {
 
     /**
      * 激活定时任务：启用且有下次触发点时挂单次调度，否则不携带调度。
+     * <p>
+     * 激活失败（如非法的cron表达式）如实返回失败阶段，
+     * 由{@link FileDetector}框架统一降级注册并记录失败原因。
+     * </p>
      *
      * @param name    任务名称
      * @param meta    任务元数据
@@ -127,15 +131,10 @@ class CronDetectorImpl extends FileDetector<CronMeta> implements CronDetector {
     @Override
     protected CompletionStage<AutoCloseable> activate(String name, CronMeta meta, Instant version) {
         if (!meta.enabled()) {
-            return CompletableFuture.completedStage(null);
+            return CompletableFuture.completedFuture(null);
         }
-        try {
-            final var future = scheduleNext(meta, version, CronExpression.create(meta.cron()), Instant.now());
-            return CompletableFuture.completedStage(cancelable(future));
-        } catch (Exception e) {
-            logger.warn("{} failed to schedule cron task: name={}", this, meta.name(), e);
-            return CompletableFuture.completedStage(null);
-        }
+        final var future = scheduleNext(meta, version, CronExpression.create(meta.cron()), Instant.now());
+        return CompletableFuture.completedFuture(cancelable(future));
     }
 
     // ---- 调度引擎：单次调度 + 自续期 ----

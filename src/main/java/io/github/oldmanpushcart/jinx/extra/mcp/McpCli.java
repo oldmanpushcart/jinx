@@ -6,6 +6,7 @@ import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -74,8 +75,11 @@ class McpCli implements Cli {
         if (args.isEmpty()) {
             return Mono.just("Usage: mcp reload <NAME>");
         }
-        return Mono.fromCompletionStage(detector.reload(args.get(0)))
-                .map(meta -> "MCP reloaded: %s".formatted(meta.name()));
+        final var name = args.get(0);
+        return Mono.fromCompletionStage(detector.reload(name))
+                .map(_meta -> "MCP reloaded: %s".formatted(name))
+                .onErrorResume(IOException.class, _ex -> Mono.just("MCP not found: %s".formatted(name)))
+                .onErrorResume(ex -> Mono.just("MCP reload failed: %s, cause: %s".formatted(name, ex.getMessage())));
     }
 
     private static String formatDetail(McpMeta mcp) {

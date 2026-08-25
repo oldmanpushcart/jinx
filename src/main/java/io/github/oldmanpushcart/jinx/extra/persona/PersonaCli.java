@@ -14,9 +14,11 @@ import java.util.List;
 class PersonaCli implements Cli {
 
     private final Persona persona;
+    private final PersonaDetector detector;
 
-    public PersonaCli(Persona persona) {
+    public PersonaCli(Persona persona, PersonaDetector detector) {
         this.persona = persona;
+        this.detector = detector;
     }
 
     @Override
@@ -36,10 +38,9 @@ class PersonaCli implements Cli {
     public Publisher<String> execute(Context ctx) {
         final var args = ctx.args();
         if (!args.isEmpty() && "reload".equals(args.get(0))) {
-            return Mono.fromCallable(() -> {
-                persona.load();
-                return "Persona reloaded.";
-            });
+            return Mono.fromCompletionStage(detector.reload(PersonaDetector.NAME))
+                    .map(_content -> "Persona reloaded.")
+                    .onErrorResume(ex -> Mono.just("Persona reload failed: %s".formatted(ex.getMessage())));
         }
 
         final var content = persona.content();

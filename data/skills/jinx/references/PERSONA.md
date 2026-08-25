@@ -13,4 +13,4 @@ sh ./bin/jinx.sh persona reload             # 从文件重新加载人格
 
 路径：`{jinx.data}/PERSONA.md`
 
-修改文件后须执行 `persona reload` 使变更生效。
+修改文件后会在 10 秒内自动探测生效，执行 `persona reload` 可立即生效。

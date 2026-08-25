@@ -7,7 +7,6 @@ import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.tool.ToolExecutionE
 import jakarta.inject.Singleton;
 import org.jspecify.annotations.NonNull;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -17,13 +16,14 @@ import java.util.List;
 @Singleton
 public class PersonaToolkit implements Toolkit {
 
-    private final Persona persona;
-    private final List<Tool> tools = List.of(
-            personaReload()
-    );
+    private final PersonaDetector detector;
+    private final List<Tool> tools;
 
-    public PersonaToolkit(Persona persona) {
-        this.persona = persona;
+    public PersonaToolkit(PersonaDetector detector) {
+        this.detector = detector;
+        this.tools = List.of(
+                personaReload()
+        );
     }
 
     @Override
@@ -41,24 +41,18 @@ public class PersonaToolkit implements Toolkit {
                 .parameterType(ReloadSpec.class)
                 .<ReloadSpec>function(spec -> {
                     try {
-                        persona.load();
+                        detector.reload(PersonaDetector.NAME)
+                                .toCompletableFuture()
+                                .join();
                         return "重新加载人格成功";
-                    } catch (IOException ioEx) {
-                        return ToolExecutionException.callFailed("persona$reload", ioEx);
+                    } catch (Exception ex) {
+                        return ToolExecutionException.callFailed("persona$reload", ex);
                     }
                 })
                 .build();
     }
 
-    private record UpdateSpec(String content) {
-
-    }
-
     private record ReloadSpec() {
-
-    }
-
-    private record GetSpec() {
 
     }
 

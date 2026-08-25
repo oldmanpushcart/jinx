@@ -27,6 +27,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>
  * 重加载流程：解析 → 版本比对（未变化则跳过）→ 名称一致性校验 → 激活注册。
  * </p>
+ * <p>
+ * 激活失败采用降级注册：条目携带失败原因照常注册，避免周期扫描对坏配置反复重试；
+ * 显式重载{@link #reload(String)}会强制重新激活并向调用方如实反馈失败原因。
+ * </p>
  *
  * @param <T> 探测对象类型
  */
@@ -57,12 +61,24 @@ public abstract class FileDetector<T> implements Detector<T> {
     public CompletionStage<T> reload(String name) {
         final var path = pathOf(name);
         if (!Files.exists(path)) {
-            return CompletableFuture.failedStage(new IOException("Detector target not exist! name=%s; path=%s".formatted(
+            return CompletableFuture.failedFuture(new IOException("Detector target not exist! name=%s; path=%s".formatted(
                     name,
                     path
             )));
         }
-        return reload(path);
+
+        /*
+         * 显式重载：强制重新激活（绕过版本短路），
+         * 完成后检查条目的激活状态，失败时向调用方如实反馈。
+         */
+        return reload(path, true)
+                .thenCompose(item -> {
+                    final var entry = entries.get(name);
+                    if (null != entry && null != entry.failure()) {
+                        return CompletableFuture.failedFuture(entry.failure());
+                    }
+                    return CompletableFuture.completedFuture(item);
+                });
     }
 
     /**
@@ -119,13 +135,24 @@ public abstract class FileDetector<T> implements Detector<T> {
     }
 
     /**
-     * 从指定来源重加载对象
+     * 从指定来源重加载对象（周期探测路径：版本短路，激活失败静默降级）
      *
      * @param path 来源路径
      * @return 重加载后的对象
      */
     protected CompletionStage<T> reload(Path path) {
-        return CompletableFuture.completedStage(null)
+        return reload(path, false);
+    }
+
+    /**
+     * 从指定来源重加载对象
+     *
+     * @param path  来源路径
+     * @param force TRUE时绕过版本短路强制重新激活（用于显式重载的重试语义）
+     * @return 重加载后的对象
+     */
+    private CompletionStage<T> reload(Path path, boolean force) {
+        return CompletableFuture.completedFuture(null)
                 .thenCompose(_u -> {
 
                     try {
@@ -135,12 +162,12 @@ public abstract class FileDetector<T> implements Detector<T> {
                         final var version = versionOf(path, item);
 
                         /*
-                         * 检查已注册的版本和当前版本是否一致
-                         * 如果一致就不用重新加载了
+                         * 检查已注册的版本和当前版本是否一致，如果一致就不用重新加载了。
+                         * 例外：强制重载，或已注册条目处于激活失败状态（版本短路会让失败永远无法被重试）。
                          */
                         final var exist = entries.get(name);
-                        if (null != exist && Objects.equals(exist.version(), version)) {
-                            return CompletableFuture.completedStage(exist.item());
+                        if (!force && null != exist && Objects.equals(exist.version(), version)) {
+                            return CompletableFuture.completedFuture(exist.item());
                         }
 
                         /*
@@ -148,28 +175,35 @@ public abstract class FileDetector<T> implements Detector<T> {
                          * 要求从来源路径提取的名称必须和从对象提取的名称一致
                          */
                         if (!Objects.equals(name, nameOf(item))) {
-                            return CompletableFuture.failedStage(new RuntimeException("Name mismatch! expect: %s, actual: %s".formatted(
+                            return CompletableFuture.failedFuture(new RuntimeException("Name mismatch! expect: %s, actual: %s".formatted(
                                     name,
                                     nameOf(item)
                             )));
                         }
 
-                        // 激活注册
-                        return activate(name, item, version)
-                                .thenApply(resource -> {
-                                    final var entry = new Entry<>(name, item, version, resource);
+                        /*
+                         * 激活注册：失败时降级注册（条目携带失败原因照常注册），
+                         * 避免周期扫描对坏配置反复重试，条目保留可见性与文件变更后的自愈能力。
+                         * completedFuture(null).thenCompose 将子类同步抛出的异常统一转为失败阶段。
+                         */
+                        return CompletableFuture.completedFuture(null)
+                                .thenCompose(_v -> activate(name, item, version))
+                                .handle((resource, ex) -> {
+                                    final var cause = null == ex ? null : CompletableFutureUtils.unwrapEx(ex);
+                                    final var entry = new Entry<>(name, item, version, null == ex ? resource : null, cause);
                                     final var expired = entries.put(name, entry);
                                     if (null != expired) {
                                         IOUtils.closeQuietly(expired);
                                     }
-                                    return item;
+                                    return entry;
                                 })
-                                .whenComplete((uu, ex) -> {
-                                    if (null != ex) {
-                                        logger.warn("{} register failed by reload! name={};", this, name, ex);
+                                .thenApply(entry -> {
+                                    if (null != entry.failure()) {
+                                        logger.warn("{} activate failed, registered as degraded. name={};", this, name, entry.failure());
                                     } else {
                                         logger.debug("{} register success by reload. name={};", this, name);
                                     }
+                                    return item;
                                 });
 
                     } catch (Exception ex) {
@@ -253,7 +287,8 @@ public abstract class FileDetector<T> implements Detector<T> {
     /**
      * 激活对象：完成资源注册并返回该资源的可关闭句柄
      * <p>
-     * 激活失败时需要子类自行清理已创建的资源，避免资源泄漏。
+     * 激活失败时返回失败阶段即可，由框架统一降级注册并记录失败原因；
+     * 子类若已自行创建资源，需在失败前清理，避免资源泄漏。
      * </p>
      *
      * @param name    名称
@@ -273,7 +308,7 @@ public abstract class FileDetector<T> implements Detector<T> {
      * @return 注册条目
      */
     protected static <T> Entry<T> entryOf(String name, T item, Instant version, AutoCloseable resource) {
-        return new Entry<>(name, item, version, resource);
+        return new Entry<>(name, item, version, resource, null);
     }
 
     /**
@@ -283,12 +318,14 @@ public abstract class FileDetector<T> implements Detector<T> {
      * @param item     对象
      * @param version  版本指纹
      * @param resource 资源句柄（条目被逐出时关闭）
+     * @param failure  激活失败原因（激活成功时为 null）
      */
     protected record Entry<T>(
             String name,
             T item,
             Instant version,
-            AutoCloseable resource
+            AutoCloseable resource,
+            Throwable failure
     ) implements AutoCloseable {
 
         @Override
