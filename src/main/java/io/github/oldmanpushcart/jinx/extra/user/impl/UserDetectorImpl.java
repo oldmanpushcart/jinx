@@ -97,7 +97,9 @@ class UserDetectorImpl extends FileDetector<String> implements UserDetector {
     @Override
     protected CompletionStage<AutoCloseable> activate(String name, String item, Instant version) {
         user.refresh(item);
-        return CompletableFuture.completedFuture(() -> user.refresh(""));
+        return CompletableFuture.completedFuture(() -> {
+
+        });
     }
 
 }

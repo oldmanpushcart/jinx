@@ -69,15 +69,14 @@ public abstract class FileDetector<T> implements Detector<T> {
 
         /*
          * 显式重载：强制重新激活（绕过版本短路），
-         * 完成后检查条目的激活状态，失败时向调用方如实反馈。
+         * 直接依据本次激活产生的条目向调用方如实反馈失败原因。
          */
         return reload(path, true)
-                .thenCompose(item -> {
-                    final var entry = entries.get(name);
-                    if (null != entry && null != entry.failure()) {
+                .thenCompose(entry -> {
+                    if (null != entry.failure()) {
                         return CompletableFuture.failedFuture(entry.failure());
                     }
-                    return CompletableFuture.completedFuture(item);
+                    return CompletableFuture.completedFuture(entry.item());
                 });
     }
 
@@ -106,7 +105,7 @@ public abstract class FileDetector<T> implements Detector<T> {
                         final var name = nameOf(path);
                         try {
                             reload(path)
-                                    .thenAccept(_item -> removes.remove(name))
+                                    .thenAccept(_entry -> removes.remove(name))
                                     .toCompletableFuture()
                                     .join();
                         } catch (Exception ex) {
@@ -138,9 +137,9 @@ public abstract class FileDetector<T> implements Detector<T> {
      * 从指定来源重加载对象（周期探测路径：版本短路，激活失败静默降级）
      *
      * @param path 来源路径
-     * @return 重加载后的对象
+     * @return 重加载后的条目
      */
-    protected CompletionStage<T> reload(Path path) {
+    protected CompletionStage<Entry<T>> reload(Path path) {
         return reload(path, false);
     }
 
@@ -149,9 +148,9 @@ public abstract class FileDetector<T> implements Detector<T> {
      *
      * @param path  来源路径
      * @param force TRUE时绕过版本短路强制重新激活（用于显式重载的重试语义）
-     * @return 重加载后的对象
+     * @return 重加载后的条目（含激活结果与失败原因）
      */
-    private CompletionStage<T> reload(Path path, boolean force) {
+    private CompletionStage<Entry<T>> reload(Path path, boolean force) {
         return CompletableFuture.completedFuture(null)
                 .thenCompose(_u -> {
 
@@ -167,7 +166,7 @@ public abstract class FileDetector<T> implements Detector<T> {
                          */
                         final var exist = entries.get(name);
                         if (!force && null != exist && Objects.equals(exist.version(), version)) {
-                            return CompletableFuture.completedFuture(exist.item());
+                            return CompletableFuture.completedFuture(exist);
                         }
 
                         /*
@@ -203,7 +202,7 @@ public abstract class FileDetector<T> implements Detector<T> {
                                     } else {
                                         logger.debug("{} register success by reload. name={};", this, name);
                                     }
-                                    return item;
+                                    return entry;
                                 });
 
                     } catch (Exception ex) {

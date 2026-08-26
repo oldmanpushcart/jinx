@@ -97,7 +97,9 @@ class PersonaDetectorImpl extends FileDetector<String> implements PersonaDetecto
     @Override
     protected CompletionStage<AutoCloseable> activate(String name, String item, Instant version) {
         persona.refresh(item);
-        return CompletableFuture.completedFuture((AutoCloseable) () -> persona.refresh(""));
+        return CompletableFuture.completedFuture(() -> {
+            
+        });
     }
 
 }

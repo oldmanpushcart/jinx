@@ -14,11 +14,15 @@ sh ./bin/jinx.sh skill reload <NAME>         # 重新加载指定 SKILL
 
 路径：`{jinx.data}/skills/{name}/SKILL.md`
 
-目录名须与 frontmatter 中 `name` 字段一致，修改后须执行 `reload`。
+目录名须与 frontmatter 中 `name` 字段一致。
+
+**文件编辑硬性要求：**
+1. 文件必须采用 **UTF-8** 编码；
+2. 编辑完成后**必须执行 `skill reload <NAME>` 强制生效**（系统虽有 10 秒自动扫描，但不得依赖其代替 reload）。
 
 ## 操作说明
 
-SKILL 的增删改均通过操作配置文件完成，系统每 10 秒自动扫描变更，也可执行 `skill reload` 立即生效。
+SKILL 的增删改均通过操作配置文件完成，每次编辑后必须执行 `skill reload <NAME>` 强制生效。
 
 - **添加**：在 `{jinx.data}/skills/` 下创建 `{name}/` 目录并写入 `SKILL.md`，目录名须与 frontmatter 中 `name` 一致，然后执行 `skill reload <NAME>` 加载并验证。
 - **修改**：直接编辑 `SKILL.md`（或目录内的其他资源文件），然后执行 `skill reload <NAME>`；改名等同删除旧 SKILL + 创建新 SKILL。

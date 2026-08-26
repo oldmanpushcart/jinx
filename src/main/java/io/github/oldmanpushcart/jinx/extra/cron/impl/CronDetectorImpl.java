@@ -133,7 +133,12 @@ class CronDetectorImpl extends FileDetector<CronMeta> implements CronDetector {
         if (!meta.enabled()) {
             return CompletableFuture.completedFuture(null);
         }
-        final var future = scheduleNext(meta, version, CronExpression.create(meta.cron()), Instant.now());
+        final ScheduledFuture<?> future;
+        if (meta instanceof CronMeta.Cron cron) {
+            future = scheduleNext(cron, version, CronExpression.create(cron.cron()), Instant.now());
+        } else {
+            future = scheduleAt((CronMeta.At) meta, version);
+        }
         return CompletableFuture.completedFuture(cancelable(future));
     }
 
@@ -159,11 +164,10 @@ class CronDetectorImpl extends FileDetector<CronMeta> implements CronDetector {
         final var meta = snapshot.item();
         logger.info("{} executing cron task: name={}, sessionId={}", this, meta.name(), meta.sessionId());
 
-        final var cronExpr = CronExpression.create(meta.cron());
-
         // FIXED 模式：触发后立即按触发时刻续期，不等待执行完成（允许并行）
-        if (CronMeta.Mode.FIXED == meta.mode()) {
-            renew(snapshot, cronExpr, Instant.now());
+        // AT（一次性）任务：触发即终结，不续期；sealed类型保证分派不会遗漏
+        if (meta instanceof CronMeta.Cron cron && CronMeta.Mode.FIXED == cron.mode()) {
+            renew(snapshot, CronExpression.create(cron.cron()), Instant.now());
         }
 
         // 触发即走：只关心执行完成与否，不关心输出；调度线程不阻塞等待。
@@ -175,18 +179,18 @@ class CronDetectorImpl extends FileDetector<CronMeta> implements CronDetector {
                         },
                         error -> {
                             logger.warn("{} cron task failed: name={}", this, meta.name(), error);
-                            renewIfDelay(snapshot, cronExpr);
+                            renewIfDelay(snapshot);
                         },
                         () -> {
                             logger.info("{} cron task completed: name={}", this, meta.name());
-                            renewIfDelay(snapshot, cronExpr);
+                            renewIfDelay(snapshot);
                         }
                 );
     }
 
-    private void renewIfDelay(Entry<CronMeta> snapshot, CronExpression cronExpr) {
-        if (CronMeta.Mode.DELAY == snapshot.item().mode()) {
-            renew(snapshot, cronExpr, Instant.now());
+    private void renewIfDelay(Entry<CronMeta> snapshot) {
+        if (snapshot.item() instanceof CronMeta.Cron cron && CronMeta.Mode.DELAY == cron.mode()) {
+            renew(snapshot, CronExpression.create(cron.cron()), Instant.now());
         }
     }
 
@@ -213,20 +217,23 @@ class CronDetectorImpl extends FileDetector<CronMeta> implements CronDetector {
                 return current;
             }
 
-            final var future = scheduleNext(snapshot.item(), snapshot.version(), cronExpr, from);
-            if (null == future) {
-                return current;   // 永久过期，停止调度；任务保留供查询展示
-            }
+            if (snapshot.item() instanceof CronMeta.Cron cron) {
+                final var future = scheduleNext(cron, snapshot.version(), cronExpr, from);
+                if (null == future) {
+                    return current;   // 永久过期，停止调度；任务保留供查询展示
+                }
 
-            IOUtils.closeQuietly(current);   // 旧任务已触发完成，关闭为空操作
-            return entryOf(name, snapshot.item(), snapshot.version(), cancelable(future));
+                IOUtils.closeQuietly(current);   // 旧任务已触发完成，关闭为空操作
+                return entryOf(name, snapshot.item(), snapshot.version(), cancelable(future));
+            }
+            return current;   // 一次性任务不会走到续期，防御性兼容
         });
     }
 
     /**
-     * 挂下一次单次调度；无下次触发点（永久过期）时返回 null。
+     * 挂周期任务的下一次单次调度；无下次触发点（永久过期）时返回 null。
      */
-    private ScheduledFuture<?> scheduleNext(CronMeta meta, Instant version, CronExpression cronExpr, Instant from) {
+    private ScheduledFuture<?> scheduleNext(CronMeta.Cron meta, Instant version, CronExpression cronExpr, Instant from) {
 
         // 计算下次执行时间
         final var afterAt = nextTimeAfter(cronExpr, from);
@@ -245,6 +252,20 @@ class CronDetectorImpl extends FileDetector<CronMeta> implements CronDetector {
                 meta.mode(),
                 afterAt
         );
+        return scheduler.schedule(() -> fire(entryOf(meta.name(), meta, version, null)), delay, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * 挂一次性任务调度；触发时刻已过期时返回 null（不补触发，避免重启后补发过期提醒）。
+     */
+    private ScheduledFuture<?> scheduleAt(CronMeta.At meta, Instant version) {
+        final var atInstant = meta.atTime().atZone(ZoneId.systemDefault()).toInstant();
+        if (!atInstant.isAfter(Instant.now())) {
+            logger.info("{} at task expired, skip scheduling: name={}, at={}", this, meta.name(), atInstant);
+            return null;
+        }
+        final var delay = Duration.between(Instant.now(), atInstant).toMillis();
+        logger.debug("{} scheduled at task: name={}, at={}", this, meta.name(), atInstant);
         return scheduler.schedule(() -> fire(entryOf(meta.name(), meta, version, null)), delay, TimeUnit.MILLISECONDS);
     }
 

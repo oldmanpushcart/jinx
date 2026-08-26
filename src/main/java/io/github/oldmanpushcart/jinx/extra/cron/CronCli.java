@@ -62,11 +62,20 @@ class CronCli implements Cli {
             return Mono.just("No scheduled tasks.");
         }
         return Mono.just(metas.stream()
-                .map(m -> "%-20s %-30s %s".formatted(
+                .map(m -> "%-20s %-6s %-30s %s".formatted(
                         m.name(),
-                        m.cron(),
+                        typeOf(m),
+                        scheduleOf(m),
                         m.enabled() ? "ENABLED" : "DISABLED"))
                 .collect(Collectors.joining("\n")));
+    }
+
+    private static String typeOf(CronMeta meta) {
+        return meta instanceof CronMeta.At ? "AT" : "CRON";
+    }
+
+    private static String scheduleOf(CronMeta meta) {
+        return meta instanceof CronMeta.At at ? at.at() : ((CronMeta.Cron) meta).cron();
     }
 
     private Publisher<String> detail(List<String> args) {
@@ -79,19 +88,37 @@ class CronCli implements Cli {
             return Mono.just("Cron task not found: %s".formatted(name));
         }
 
+        if (meta instanceof CronMeta.At at) {
+            return Mono.just("""
+                    NAME: %s
+                    TYPE: AT
+                    AT: %s
+                    PROMPT: %s
+                    SESSION: %s
+                    ENABLED: %s""".formatted(
+                    at.name(),
+                    at.at(),
+                    at.prompt(),
+                    at.sessionId(),
+                    Boolean.toString(at.enabled())
+            ));
+        }
+
+        final var cron = (CronMeta.Cron) meta;
         return Mono.just("""
                 NAME: %s
+                TYPE: CRON
                 CRON: %s
                 PROMPT: %s
                 MODE: %s
                 SESSION: %s
                 ENABLED: %s""".formatted(
-                meta.name(),
-                meta.cron(),
-                meta.prompt(),
-                meta.mode(),
-                meta.sessionId(),
-                Boolean.toString(meta.enabled())
+                cron.name(),
+                cron.cron(),
+                cron.prompt(),
+                cron.mode(),
+                cron.sessionId(),
+                Boolean.toString(cron.enabled())
         ));
     }
 

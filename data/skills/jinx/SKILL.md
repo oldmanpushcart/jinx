@@ -49,15 +49,15 @@ jinx/
 
 各功能的详细文档位于 `references/` 目录下，按需查阅：
 
-| 功能 | 详细文档 | 说明 |
-|---|---|---|
-| MCP 管理 | [references/MCP.md](references/MCP.md) | 管理 MCP 外部工具服务（stdio/sse/streamable-http） |
-| SKILL 管理 | [references/SKILL-MANAGE.md](references/SKILL-MANAGE.md) | 管理 SKILL 行为编排指令 |
+| 功能 | 详细文档                                       | 说明 |
+|---|------------------------------------------------|---|
+| MCP 管理 | [references/MCP.md](references/MCP.md)         | 管理 MCP 外部工具服务（stdio/sse/streamable-http） |
+| SKILL 管理 | [references/SKILL.md](references/SKILL.md)     | 管理 SKILL 行为编排指令 |
 | 人格管理 | [references/PERSONA.md](references/PERSONA.md) | 管理 AI 角色设定 |
-| 用户档案 | [references/USER.md](references/USER.md) | 管理用户个人信息（仅记录稳定画像，与 MEMORY 区分） |
+| 用户档案 | [references/USER.md](references/USER.md)       | 管理用户个人信息（仅记录稳定画像，与 MEMORY 区分） |
 | 系统设置 | [references/SETTING.md](references/SETTING.md) | 查看和修改系统配置 |
-| 对话 | [references/CHAT.md](references/CHAT.md) | 与 Agent 对话交互（含会话管理） |
-| 定时任务 | [references/CRON.md](references/CRON.md) | 管理定时调度任务（定时/定期执行） |
+| 对话 | [references/CHAT.md](references/CHAT.md)       | 与 Agent 对话交互（含会话管理） |
+| 定时任务 | [references/CRON.md](references/CRON.md)       | 管理定时调度任务（定时/定期执行） |
 | 版本查询 | [references/VERSION.md](references/VERSION.md) | 查看系统版本 |
 
 ## 命令行工具（jinx.sh）
