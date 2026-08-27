@@ -7,7 +7,6 @@ import io.github.oldmanpushcart.dashscope4j.agent.toolkit.dashscope.DashscopeToo
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.file.FileOpsToolkit;
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.file.TextFileOpsToolkit;
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.network.HttpToolkit;
-import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.tool.FunctionTool;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.tool.Tool;
 import io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils;
 import io.github.oldmanpushcart.dashscope4j.client.util.IOUtils;
@@ -15,11 +14,8 @@ import io.github.oldmanpushcart.jinx.Constants;
 import io.micronaut.context.annotation.Context;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import org.jspecify.annotations.NonNull;
 
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -74,7 +70,6 @@ class ToolboxLatcher {
 
                 })
                 .append(
-                        toolkit(),
                         DashscopeToolkit.create(),
                         HttpToolkit.newBuilder()
                                 .workspace(Constants.WORK)
@@ -90,38 +85,6 @@ class ToolboxLatcher {
         autoCloseableSet.add(source);
         return source.initialize()
                 .thenCompose(toolbox::subscribe);
-    }
-
-    private Toolkit toolkit() {
-        return new Toolkit() {
-
-            private final List<Tool> tools = List.of(session());
-
-            @Override
-            public @NonNull Iterator<Tool> iterator() {
-                return tools.iterator();
-            }
-
-            private Tool session() {
-                return FunctionTool.newBuilder()
-                        .name("session")
-                        .description("获取当前会话的SESSION")
-                        .parameterType(Object.class)
-                        .function((caller, u) -> {
-                            final var request = caller.request();
-                            final var sessionId = (String) request.context().get("SESSION-ID");
-                            if (CommonUtils.isNotBlankString(sessionId)) {
-                                return Map.of(
-                                        "id", sessionId
-                                );
-                            } else {
-                                return null;
-                            }
-                        })
-                        .build();
-            }
-
-        };
     }
 
 }

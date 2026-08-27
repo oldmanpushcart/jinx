@@ -22,7 +22,7 @@
 ## 命令
 
 ```bash
-sh ./bin/jinx.sh cron list                  # 列出所有定时任务（含 TYPE 列）
+sh ./bin/jinx.sh cron list                  # 列出所有定时任务（含 TYPE、SESSION 列）
 sh ./bin/jinx.sh cron detail <NAME>         # 查看指定任务的详细信息
 sh ./bin/jinx.sh cron reload <NAME>         # 重新加载指定任务
 ```
@@ -31,8 +31,8 @@ sh ./bin/jinx.sh cron reload <NAME>         # 重新加载指定任务
 
 由 Agent 通过文件编辑直接创建，步骤如下：
 
-1. 调用 `session` 工具获取当前 CHAT 会话 ID，作为 `session_id` 字段值（任务触发后的执行结果将回写到该会话）；
-   **若获取不到会话 ID（返回为空），必须终止创建并告知用户失败原因，不得写入配置文件**；
+1. 取系统上下文运行时信息中的 `SESSION`（会话 ID），作为 `session_id` 字段值（任务触发后的执行结果将回写到该会话）；
+   **若上下文中没有会话 ID，必须终止创建并告知用户失败原因，不得写入配置文件**；
 2. 按上文选型确定 `type`，使用文件编辑工具写入配置文件 `{jinx.data}/cron/{name}.cron.json`，格式见下节；
 3. 执行 `sh ./bin/jinx.sh cron reload <NAME>` 强制生效（不得依赖系统 10 秒自动扫描代替 reload）。
 
@@ -82,7 +82,7 @@ sh ./bin/jinx.sh cron reload <NAME>         # 重新加载指定任务
 | `prompt`     | 触发时发送给 Agent 执行的指令 |
 | `enabled`    | 启停控制，`false` 表示暂停 |
 | `mode`       | 周期任务专用：调度模式（可选，缺省 `delay`），见下节；一次性任务不得配置此字段 |
-| `session_id` | CHAT 会话 ID（**必填**）：任务触发时在该会话执行并回写结果。创建前必须通过 `session` 工具获取；缺失时配置解析失败，任务不会被加载 |
+| `session_id` | CHAT 会话 ID（**必填**）：任务触发时在该会话执行并回写结果。直接使用系统上下文运行时信息中的 `SESSION`；缺失时配置解析失败，任务不会被加载 |
 
 ## Cron 表达式格式规范（必读）
 

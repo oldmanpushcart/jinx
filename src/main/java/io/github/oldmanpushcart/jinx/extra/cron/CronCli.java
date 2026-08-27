@@ -62,10 +62,11 @@ class CronCli implements Cli {
             return Mono.just("No scheduled tasks.");
         }
         return Mono.just(metas.stream()
-                .map(m -> "%-20s %-6s %-30s %s".formatted(
+                .map(m -> "%-20s %-6s %-30s %-35s %s".formatted(
                         m.name(),
                         typeOf(m),
                         scheduleOf(m),
+                        m.sessionId(),
                         m.enabled() ? "ENABLED" : "DISABLED"))
                 .collect(Collectors.joining("\n")));
     }
