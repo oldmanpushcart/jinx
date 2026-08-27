@@ -29,7 +29,7 @@ class SkillCli implements Cli {
     @Override
     public List<Item> usage() {
         return List.of(
-                new Item("skill", "Manage SKILL definitions."),
+                new Item("skill", "Manage SKILL definitions. (no subcommand defaults to list)"),
                 new Item("skill list", "List all loaded SKILLs."),
                 new Item("skill detail <NAME>", "Show detail of a specific SKILL."),
                 new Item("skill reload <NAME>", "Reload a specific SKILL.")
@@ -39,8 +39,10 @@ class SkillCli implements Cli {
     @Override
     public Publisher<String> execute(Context ctx) {
         final var args = ctx.args();
+
+        // 空参数默认 list
         if (args.isEmpty()) {
-            return Mono.just("Usage: skill <list|detail|reload>");
+            return list();
         }
 
         return switch (args.get(0)) {

@@ -34,7 +34,7 @@ class CronCli implements Cli {
     @Override
     public List<Item> usage() {
         return List.of(
-                new Item("cron", "Manage scheduled tasks."),
+                new Item("cron", "Manage scheduled tasks. (no subcommand defaults to list)"),
                 new Item("cron list", "List all scheduled tasks."),
                 new Item("cron detail <NAME>", "Show detail of a specific task."),
                 new Item("cron reload <NAME>", "Reload a specific task.")
@@ -44,8 +44,10 @@ class CronCli implements Cli {
     @Override
     public Publisher<String> execute(Context ctx) {
         final var args = ctx.args();
+
+        // 空参数默认 list
         if (args.isEmpty()) {
-            return Mono.just("Usage: cron <list|detail|reload>");
+            return list();
         }
 
         return switch (args.get(0)) {

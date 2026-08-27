@@ -31,7 +31,7 @@ class McpCli implements Cli {
     @Override
     public List<Item> usage() {
         return List.of(
-                new Item("mcp", "Manage MCP services."),
+                new Item("mcp", "Manage MCP services. (no subcommand defaults to list)"),
                 new Item("mcp list", "List all loaded MCPs."),
                 new Item("mcp detail <NAME>", "Show detail of a specific MCP."),
                 new Item("mcp reload <NAME>", "Reload a specific MCP.")
@@ -41,8 +41,10 @@ class McpCli implements Cli {
     @Override
     public Publisher<String> execute(Context ctx) {
         final var args = ctx.args();
+
+        // 空参数默认 list
         if (args.isEmpty()) {
-            return Mono.just("Usage: mcp <list|detail|reload>");
+            return list();
         }
 
         return switch (args.get(0)) {
