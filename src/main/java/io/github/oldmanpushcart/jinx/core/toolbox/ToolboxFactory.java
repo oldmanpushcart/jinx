@@ -33,10 +33,11 @@ class ToolboxFactory {
     public ToolboxHook makeToolboxHook(Toolbox toolbox) {
 
         final var tools = Stream.of(
-                        RuntimeToolkit.create(),
-                        ShellToolkit.newBuilder()
-                                .securityLevel(ShellToolkit.SecurityLevel.NONE)
-                                .build()
+                        RuntimeToolkit.create()
+//                        ,
+//                        ShellToolkit.newBuilder()
+//                                .securityLevel(ShellToolkit.SecurityLevel.NONE)
+//                                .build()
                 )
                 .flatMap(toolkit -> StreamSupport.stream(toolkit.spliterator(), false))
                 .toList();

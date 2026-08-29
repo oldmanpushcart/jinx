@@ -5,9 +5,9 @@ MCP（Model Context Protocol）用于为 Agent 接入外部工具服务。
 ## 命令
 
 ```bash
-sh ./bin/jinx.sh mcp list                  # 列出所有已加载的 MCP 服务
-sh ./bin/jinx.sh mcp detail <NAME>          # 查看指定 MCP 服务的详细信息
-sh ./bin/jinx.sh mcp reload <NAME>          # 重新加载指定 MCP 服务
+./bin/jinx.sh mcp list                  # 列出所有已加载的 MCP 服务
+./bin/jinx.sh mcp detail <NAME>          # 查看指定 MCP 服务的详细信息
+./bin/jinx.sh mcp reload <NAME>          # 重新加载指定 MCP 服务
 ```
 
 ## 配置文件

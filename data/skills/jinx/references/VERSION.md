@@ -5,5 +5,5 @@
 ## 命令
 
 ```bash
-sh ./bin/jinx.sh version
+./bin/jinx.sh version
 ```

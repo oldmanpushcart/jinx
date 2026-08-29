@@ -22,9 +22,9 @@
 ## 命令
 
 ```bash
-sh ./bin/jinx.sh cron list                  # 列出所有定时任务（含 TYPE、SESSION 列）
-sh ./bin/jinx.sh cron detail <NAME>         # 查看指定任务的详细信息
-sh ./bin/jinx.sh cron reload <NAME>         # 重新加载指定任务
+./bin/jinx.sh cron list                  # 列出所有定时任务（含 TYPE、SESSION 列）
+./bin/jinx.sh cron detail <NAME>         # 查看指定任务的详细信息
+./bin/jinx.sh cron reload <NAME>         # 重新加载指定任务
 ```
 
 ## 创建任务
@@ -34,7 +34,7 @@ sh ./bin/jinx.sh cron reload <NAME>         # 重新加载指定任务
 1. 取系统上下文运行时信息中的 `SESSION`（会话 ID），作为 `session_id` 字段值（任务触发后的执行结果将回写到该会话）；
    **若上下文中没有会话 ID，必须终止创建并告知用户失败原因，不得写入配置文件**；
 2. 按上文选型确定 `type`，使用文件编辑工具写入配置文件 `{jinx.data}/cron/{name}.cron.json`，格式见下节；
-3. 执行 `sh ./bin/jinx.sh cron reload <NAME>` 强制生效（不得依赖系统 10 秒自动扫描代替 reload）。
+3. 执行 `./bin/jinx.sh cron reload <NAME>` 强制生效（不得依赖系统 10 秒自动扫描代替 reload）。
 
 **文件编辑硬性要求：** 配置文件必须采用 **UTF-8** 编码；任何编辑完成后必须执行 `cron reload <NAME>` 强制生效。
 

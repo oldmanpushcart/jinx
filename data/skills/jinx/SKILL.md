@@ -2,7 +2,7 @@
 name: jinx
 description: |
   Jinx CLI 管理技能。
-  当需要修改 Jinx 配置、添加 MCP 服务、编辑 SKILL、重新加载人格、管理用户档案、进行对话交互、管理定时任务时使用。
+  当需要修改 Jinx 配置、添加 MCP 服务、编辑 SKILL、管理提示词（人格 / 用户档案等）、进行对话交互、管理定时任务时使用。
   
   通过 jinx.sh 命令行工具管理 Jinx 系统，涵盖以下能力：
   - 系统设置：查看和修改系统配置
@@ -10,8 +10,8 @@ description: |
     - 开启 / 关闭 语音播报
   - MCP 管理：管理MCP
   - SKILL 管理：管理SKILL
-  - 人格管理：管理 AI 角色设定。
-  - 用户档案：管理用户个人信息（称呼、偏好等）。当用户主动告知个人信息或要求记住其个人信息时可以激活。
+  - 提示词管理：管理常驻植入上下文的提示词，含人格（AI 角色设定）与用户档案（用户个人信息）。
+    当要求修改人设/性格/说话方式，或用户主动告知个人信息、要求记住其个人信息时可以激活。
   - 对话交互：与 Agent 进行对话（含会话管理）
   - 定时任务：创建和管理定时调度任务。当定时、周期性的目标时可以激活。
     - 3分钟后叫醒我
@@ -37,9 +37,8 @@ jinx/
 │   ├── mcp/        # MCP 服务配置：{name}.mcp.json
 │   ├── skills/     # SKILL 技能定义：{name}/SKILL.md
 │   ├── cron/       # 定时任务配置：{name}.cron.json
-│   ├── session/    # 会话记录
-│   ├── PERSONA.md  # AI 角色设定
-│   └── USER.md     # 用户档案（用户个人信息）
+│   ├── prompts/    # 提示词：{preparation|interaction}/{name}.md（人格、用户档案等）
+│   └── session/    # 会话记录
 ├── logs/           # 日志（jinx.log、dashscope4j.log，按天滚动）
 ├── work/           # Agent 工作空间
 └── libs/           # （发布包）FatJar
@@ -53,8 +52,7 @@ jinx/
 |---|------------------------------------------------|---|
 | MCP 管理 | [references/MCP.md](references/MCP.md)         | 管理 MCP 外部工具服务（stdio/sse/streamable-http） |
 | SKILL 管理 | [references/SKILL.md](references/SKILL.md)     | 管理 SKILL 行为编排指令 |
-| 人格管理 | [references/PERSONA.md](references/PERSONA.md) | 管理 AI 角色设定 |
-| 用户档案 | [references/USER.md](references/USER.md)       | 管理用户个人信息（仅记录稳定画像，与 MEMORY 区分） |
+| 提示词管理 | [references/PROMPTS.md](references/PROMPTS.md) | 管理常驻提示词（含人格与用户档案，仅记录稳定画像，与 MEMORY 区分） |
 | 系统设置 | [references/SETTING.md](references/SETTING.md) | 查看和修改系统配置 |
 | 对话 | [references/CHAT.md](references/CHAT.md)       | 与 Agent 对话交互（含会话管理） |
 | 定时任务 | [references/CRON.md](references/CRON.md)       | 管理定时调度任务（定时/定期执行） |
@@ -62,7 +60,7 @@ jinx/
 
 ## 命令行工具（jinx.sh）
 
-固定路径：`sh ./bin/jinx.sh`
+固定路径：`./bin/jinx.sh`
 
 ### 全局选项
 
@@ -79,8 +77,8 @@ jinx/
 本地命令由 `jinx.sh` 直接处理，不依赖远程服务：
 
 ```bash
-sh ./bin/jinx.sh session                    # 查看当前 Session ID
-sh ./bin/jinx.sh session new                # 生成新 Session ID
+./bin/jinx.sh session                    # 查看当前 Session ID
+./bin/jinx.sh session new                # 生成新 Session ID
 ```
 
 ### 远程命令
@@ -88,5 +86,5 @@ sh ./bin/jinx.sh session new                # 生成新 Session ID
 远程命令通过服务端执行。可通过 `jinx.sh help` 动态获取所有远程命令清单：
 
 ```bash
-sh ./bin/jinx.sh help
+./bin/jinx.sh help
 ```

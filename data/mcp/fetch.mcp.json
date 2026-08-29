@@ -1,0 +1,8 @@
+{
+  "name": "fetch",
+  "type": "stdio",
+  "cmd": "uvx",
+  "args": [
+    "mcp-server-fetch"
+  ]
+}

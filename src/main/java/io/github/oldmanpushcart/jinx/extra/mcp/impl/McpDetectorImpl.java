@@ -126,7 +126,7 @@ class McpDetectorImpl extends FileDetector<McpMeta> implements McpDetector {
      */
     @Override
     protected CompletionStage<AutoCloseable> activate(String name, McpMeta meta, Instant version) {
-        final var transport = recoverable(_m -> toTransport(meta));
+        final var transport = recoverable(name, _m -> toTransport(meta));
         return toolbox.subscribeMcp(meta.name(), transport)
 
                 /*
@@ -229,11 +229,13 @@ class McpDetectorImpl extends FileDetector<McpMeta> implements McpDetector {
     /**
      * MCP传输器重连加固
      *
+     * @param name    MCP名称
      * @param factory MCP传输器工厂
      * @return 可重连的MCP传输器
      */
-    private static McpClientTransport recoverable(Function<McpJsonMapper, McpClientTransport> factory) {
+    private static McpClientTransport recoverable(String name, Function<McpJsonMapper, McpClientTransport> factory) {
         return RecoverableMcpClientTransport.newBuilder()
+                .name(name)
                 .transportFactory(factory)
                 .reconnectStrategy(ReconnectStrategies
                         .always()

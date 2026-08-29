@@ -89,7 +89,8 @@ post_form() {
 # 请求体为纯 ASCII 且不受 argv 长度限制；参数不再经 argv 传给原生 curl
 execute_remote() {
     local cmd="$1"; shift
-    local body="cmd=$(urlencode "$cmd")"
+    local body
+    body="cmd=$(urlencode "$cmd")"
     for arg in "$@"; do
         body="${body}&args=$(urlencode "$arg")"
     done
@@ -111,7 +112,7 @@ IP="127.0.0.1"
 PORT="8080"
 SESSION_FILE="$HOME/.jinx.session"
 SESSION_ID=""
-CURL_FLAGS=(-fsS)
+CURL_FLAGS=(-sS)
 
 while getopts "i:p:s:xh" opt; do
     case $opt in

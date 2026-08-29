@@ -1,0 +1,10 @@
+{
+  "name": "filesystem",
+  "type": "stdio",
+  "cmd": "npx",
+  "args": [
+    "-y",
+    "@modelcontextprotocol/server-filesystem",
+    "${HOME}"
+  ]
+}

@@ -5,9 +5,9 @@
 ## 命令
 
 ```bash
-sh ./bin/jinx.sh setting                    # 列出所有配置项
-sh ./bin/jinx.sh setting <NAME>             # 查询指定配置项
-sh ./bin/jinx.sh setting <NAME> <VALUE>     # 修改配置项
+./bin/jinx.sh setting                    # 列出所有配置项
+./bin/jinx.sh setting <NAME>             # 查询指定配置项
+./bin/jinx.sh setting <NAME> <VALUE>     # 修改配置项
 ```
 
 ## 可写配置项

@@ -84,8 +84,8 @@ if ! mkdir -p "$RELEASE_DIR/libs" || ! cp "$TARGET_JAR" "$RELEASE_DIR/libs/"; th
 fi
 
 # 复制 data 目录下的指定文件和子目录
-if ! cp data/PERSONA.md "$RELEASE_DIR/data/"; then
-    echo "Error: Failed to copy data/PERSONA.md!"
+if ! cp -r data/prompts "$RELEASE_DIR/data/"; then
+    echo "Error: Failed to copy data/prompts directory!"
     exit 1
 fi
 

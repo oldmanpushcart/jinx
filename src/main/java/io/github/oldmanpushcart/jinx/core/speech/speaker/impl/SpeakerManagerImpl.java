@@ -136,11 +136,17 @@ public class SpeakerManagerImpl implements SpeakerManager {
 
             @Override
             public void onClosed(Throwable ex) {
-                speakerRef.compareAndSet(speaker, null);
                 logger.debug("{} closed.", speaker, ex);
+                speakerRef.compareAndSet(speaker, null);
+                connectF.completeExceptionally(ex);
             }
 
-        });
+        }).whenComplete((u, ex) -> {
+            if (null != ex) {
+                connectF.completeExceptionally(ex);
+            }
+        })
+        ;
 
         return connectF;
     }

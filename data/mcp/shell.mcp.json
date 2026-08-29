@@ -1,0 +1,11 @@
+{
+  "name": "shell",
+  "type": "stdio",
+  "cmd": "uvx",
+  "args": [
+    "mcp-shell-server"
+  ],
+  "env": {
+    "ALLOW_PATTERNS": ".*"
+  }
+}

@@ -3,6 +3,7 @@ package io.github.oldmanpushcart.jinx.extra.common;
 import io.github.oldmanpushcart.dashscope4j.agent.Agent;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.Message;
 import io.github.oldmanpushcart.jinx.cli.Cli;
+import io.github.oldmanpushcart.jinx.cli.CliException;
 import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -55,10 +56,12 @@ class ChatCli implements Cli {
         final var inbound = Message.user(content);
         return Flux.from(agent.flow(sessionId, inbound))
                 .map(Message::text)
-                .onErrorMap(t -> {
+
+                // 流过程中的错误：记录日志后转为普通文本流出，保持 200 状态码，不向外发onError信号
+                .onErrorResume(t -> {
                     final var cause = Exceptions.unwrap(t);
                     log.warn("jinx://cli/chat/{} occur error!", sessionId, cause);
-                    return cause;
+                    return Mono.just(CliException.textOf(cause));
                 });
     }
 

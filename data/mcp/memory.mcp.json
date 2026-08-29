@@ -1,0 +1,12 @@
+{
+  "name": "memory",
+  "type": "stdio",
+  "cmd": "npx",
+  "args": [
+    "-y",
+    "@modelcontextprotocol/server-memory"
+  ],
+  "env": {
+    "MEMORY_FILE_PATH": "./data/memory.jsonl"
+  }
+}

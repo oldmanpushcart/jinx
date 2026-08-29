@@ -70,16 +70,17 @@ class ToolboxLatcher {
 
                 })
                 .append(
-                        DashscopeToolkit.create(),
-                        HttpToolkit.newBuilder()
-                                .workspace(Constants.WORK)
-                                .build(),
-                        FileOpsToolkit.newBuilder()
-                                .workspace(Constants.USER_HOME)
-                                .build(),
-                        TextFileOpsToolkit.newBuilder()
-                                .workspace(Constants.USER_HOME)
-                                .build()
+                        DashscopeToolkit.create()
+//                        ,
+//                        HttpToolkit.newBuilder()
+//                                .workspace(Constants.WORK)
+//                                .build(),
+//                        FileOpsToolkit.newBuilder()
+//                                .workspace(Constants.USER_HOME)
+//                                .build(),
+//                        TextFileOpsToolkit.newBuilder()
+//                                .workspace(Constants.USER_HOME)
+//                                .build()
                 )
                 .build();
         autoCloseableSet.add(source);
