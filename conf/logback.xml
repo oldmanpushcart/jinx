@@ -41,7 +41,7 @@
     <logger name="io.github.oldmanpushcart.jinx" level="DEBUG"/>
 
     <!-- 主日志 -->
-    <root level="INFO">
+    <root level="WARN">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
     </root>

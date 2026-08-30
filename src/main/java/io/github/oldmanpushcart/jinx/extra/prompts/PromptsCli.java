@@ -7,7 +7,6 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -16,11 +15,10 @@ import java.util.stream.Collectors;
 @Singleton
 class PromptsCli implements Cli {
 
-    private final Map<PromptPhase, PromptDetector> detectors;
+    private final PromptDetector detector;
 
-    public PromptsCli(List<PromptDetector> detectorList) {
-        this.detectors = detectorList.stream()
-                .collect(Collectors.toMap(PromptDetector::phase, detector -> detector));
+    public PromptsCli(PromptDetector detector) {
+        this.detector = detector;
     }
 
     @Override
@@ -32,9 +30,8 @@ class PromptsCli implements Cli {
     public List<Item> usage() {
         return List.of(
                 new Item("prompts", "List all prompts. (no subcommand defaults to list)"),
-                new Item("prompts <PHASE>", "List prompts of a phase (preparation|interaction)."),
-                new Item("prompts <PHASE> reload <NAME>", "Reload a specific prompt."),
-                new Item("prompts <PHASE> detail <NAME>", "Show content of a specific prompt.")
+                new Item("prompts reload <NAME>", "Reload a specific prompt."),
+                new Item("prompts detail <NAME>", "Show content of a specific prompt.")
         );
     }
 
@@ -44,67 +41,46 @@ class PromptsCli implements Cli {
 
         // 空参数默认列举全部
         if (args.isEmpty()) {
-            return listAll();
+            return list();
         }
 
-        final var phase = PromptPhase.of(args.get(0)).orElse(null);
-        if (phase == null) {
-            return Mono.just("Unknown phase: %s (expect: preparation|interaction)".formatted(args.get(0)));
-        }
-
-        // 仅指定阶段：列举该阶段
-        if (args.size() == 1) {
-            return list(phase);
-        }
-
-        final var detector = detectors.get(phase);
-        return switch (args.get(1)) {
-            case "reload" -> reload(detector, phase, args.subList(2, args.size()));
-            case "detail" -> detail(detector, phase, args.subList(2, args.size()));
-            default -> Mono.just("Unknown subcommand: %s".formatted(args.get(1)));
+        return switch (args.get(0)) {
+            case "reload" -> reload(args.subList(1, args.size()));
+            case "detail" -> detail(args.subList(1, args.size()));
+            default -> Mono.just("Unknown subcommand: %s".formatted(args.get(0)));
         };
     }
 
-    private Publisher<String> listAll() {
-        return Mono.just(List.of(PromptPhase.values()).stream()
-                .map(phase -> "## %s\n%s".formatted(phase.directory(), namesOf(detectors.get(phase))))
-                .collect(Collectors.joining("\n\n")));
+    private Publisher<String> list() {
+        final var names = detector.list().stream()
+                .map(PromptMeta::name)
+                .sorted()
+                .collect(Collectors.joining("\n"));
+        return Mono.just(names.isBlank() ? "(no prompts)" : names);
     }
 
-    private Publisher<String> list(PromptPhase phase) {
-        final var names = namesOf(detectors.get(phase));
-        return Mono.just(names.isBlank() ? "(%s is empty)".formatted(phase.directory()) : names);
-    }
-
-    private Publisher<String> reload(PromptDetector detector, PromptPhase phase, List<String> args) {
+    private Publisher<String> reload(List<String> args) {
         if (args.isEmpty()) {
-            return Mono.just("Usage: prompts %s reload <NAME>".formatted(phase.directory()));
+            return Mono.just("Usage: prompts reload <NAME>");
         }
         final var name = args.get(0);
         return Mono.fromCompletionStage(detector.reload(name))
-                .map(_meta -> "Prompt reloaded: %s/%s".formatted(phase.directory(), name))
-                .onErrorResume(IOException.class, _ex -> Mono.just("Prompt not found: %s/%s".formatted(phase.directory(), name)))
-                .onErrorResume(ex -> Mono.just("Prompt reload failed: %s/%s, cause: %s".formatted(phase.directory(), name, ex.getMessage())));
+                .map(_meta -> "Prompt reloaded: %s".formatted(name))
+                .onErrorResume(IOException.class, _ex -> Mono.just("Prompt not found: %s".formatted(name)))
+                .onErrorResume(ex -> Mono.just("Prompt reload failed: %s, cause: %s".formatted(name, ex.getMessage())));
     }
 
-    private Publisher<String> detail(PromptDetector detector, PromptPhase phase, List<String> args) {
+    private Publisher<String> detail(List<String> args) {
         if (args.isEmpty()) {
-            return Mono.just("Usage: prompts %s detail <NAME>".formatted(phase.directory()));
+            return Mono.just("Usage: prompts detail <NAME>");
         }
         final var name = args.get(0);
         final var prompt = detector.get(name).orElse(null);
         if (prompt == null) {
-            return Mono.just("Prompt not found: %s/%s".formatted(phase.directory(), name));
+            return Mono.just("Prompt not found: %s".formatted(name));
         }
         final var content = prompt.content();
-        return Mono.just(content.isBlank() ? "(%s/%s is empty)".formatted(phase.directory(), name) : content);
-    }
-
-    private static String namesOf(PromptDetector detector) {
-        return detector.list().stream()
-                .map(PromptMeta::name)
-                .sorted()
-                .collect(Collectors.joining("\n"));
+        return Mono.just(content.isBlank() ? "(%s is empty)".formatted(name) : content);
     }
 
 }

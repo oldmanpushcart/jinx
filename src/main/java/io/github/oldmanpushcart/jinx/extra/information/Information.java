@@ -1,5 +1,6 @@
 package io.github.oldmanpushcart.jinx.extra.information;
 
+import io.github.oldmanpushcart.dashscope4j.agent.util.PromptTemplate;
 import io.github.oldmanpushcart.jinx.Constants;
 import jakarta.inject.Singleton;
 
@@ -23,22 +24,34 @@ class Information {
     private final String content;
 
     public Information() {
-        this.content = """
-                OS: %s
-                SHELL: %s
-                TIMEZONE: %s
-                JAVA: %s
-                JINX: %s
-                WORKDIR: %s
-                USER-HOME: %s""".formatted(
-                os(),
-                shell(),
-                timezone(),
-                java(),
-                Constants.VERSION,
-                Constants.HOME,
-                Constants.USER_HOME
-        );
+        this.content = PromptTemplate.newBuilder()
+                .template("""
+                        os: ${os}
+                        shell: ${shell}
+                        timezone: ${timezone}
+                        user.home: ${user.home}
+                        jinx.version: ${jinx.version}
+                        jinx.home: ${jinx.home}
+                        jinx.data: ${jinx.data}
+                        jinx.work: ${jinx.work}
+                        jinx.conf: ${jinx.conf}
+                        jinx.logs: ${jinx.logs}
+                        """)
+                .building(builder -> builder
+                        .variable("os", os())
+                        .variable("shell", shell())
+                        .variable("timezone", timezone())
+                        .variable("user.home", Constants.USER_HOME)
+                        .variable("jinx.version", Constants.VERSION)
+                        .variable("jinx.home", Constants.HOME)
+                        .variable("jinx.data", Constants.DATA)
+                        .variable("jinx.work", Constants.WORK)
+                        .variable("jinx.conf", Constants.CONF)
+                        .variable("jinx.logs", Constants.LOGS)
+                )
+                .build()
+                .render();
+
     }
 
     /**

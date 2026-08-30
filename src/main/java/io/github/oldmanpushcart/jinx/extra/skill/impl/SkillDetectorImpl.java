@@ -4,8 +4,6 @@ import io.github.oldmanpushcart.dashscope4j.agent.toolbox.Toolbox;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.source.skill.Skill;
 import io.github.oldmanpushcart.jinx.core.detector.FileDetector;
 import io.github.oldmanpushcart.jinx.extra.skill.SkillDetector;
-import io.micronaut.scheduling.annotation.Scheduled;
-import jakarta.annotation.PostConstruct;
 import jakarta.inject.Singleton;
 
 import java.io.IOException;
@@ -21,16 +19,6 @@ class SkillDetectorImpl extends FileDetector<Skill> implements SkillDetector {
 
     SkillDetectorImpl(Toolbox toolbox) {
         this.toolbox = toolbox;
-    }
-
-    @PostConstruct
-    void init() {
-        detectQuietly("init");
-    }
-
-    @Scheduled(fixedDelay = "10s")
-    void scan() {
-        detectQuietly("scan");
     }
 
     @Override

@@ -5,6 +5,6 @@
   "args": [
     "-y",
     "@modelcontextprotocol/server-filesystem",
-    "${HOME}"
+    "${env.HOME}"
   ]
 }

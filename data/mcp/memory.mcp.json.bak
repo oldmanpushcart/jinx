@@ -7,6 +7,6 @@
     "@modelcontextprotocol/server-memory"
   ],
   "env": {
-    "MEMORY_FILE_PATH": "./data/memory.jsonl"
+    "MEMORY_FILE_PATH": "${property.user.dir}/data/memory.jsonl"
   }
 }

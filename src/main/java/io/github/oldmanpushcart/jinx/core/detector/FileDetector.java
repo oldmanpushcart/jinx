@@ -2,6 +2,9 @@ package io.github.oldmanpushcart.jinx.core.detector;
 
 import io.github.oldmanpushcart.dashscope4j.client.util.CompletableFutureUtils;
 import io.github.oldmanpushcart.dashscope4j.client.util.IOUtils;
+import io.micronaut.core.annotation.ReflectiveAccess;
+import io.micronaut.scheduling.annotation.Scheduled;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +31,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * 重加载流程：解析 → 版本比对（未变化则跳过）→ 名称一致性校验 → 激活注册。
  * </p>
  * <p>
- * 激活失败采用降级注册：条目携带失败原因照常注册，避免周期扫描对坏配置反复重试；
- * 显式重载{@link #reload(String)}会强制重新激活并向调用方如实反馈失败原因。
+ * 激活失败采用降级注册：条目携带失败原因照常注册，保留可见性；
+ * 失败条目在周期扫描中每轮重试（串行阻塞扫描由调度自然限频，不形成风暴），实现自愈；
+ * 显式重载{@link #reload(String)}强制立即重新激活并向调用方如实反馈失败原因。
  * </p>
  *
  * @param <T> 探测对象类型
@@ -73,11 +77,29 @@ public abstract class FileDetector<T> implements Detector<T> {
          */
         return reload(path, true)
                 .thenCompose(entry -> {
-                    if (null != entry.failure()) {
+                    if (entry.isFailed()) {
                         return CompletableFuture.failedFuture(entry.failure());
                     }
                     return CompletableFuture.completedFuture(entry.item());
                 });
+    }
+
+    /**
+     * 启动探测：Bean初始化后立即检测一次，由框架统一提供，子类无需重复声明。
+     */
+    @PostConstruct
+    protected void init() {
+        detectQuietly("init");
+    }
+
+    /**
+     * 周期探测：固定10秒扫描一次，承担失效条目移除与降级条目的重试自愈，
+     * 由框架统一提供，子类无需重复声明。
+     */
+    @Scheduled(fixedDelay = "10s")
+    @ReflectiveAccess
+    protected void scan() {
+        detectQuietly("scan");
     }
 
     /**
@@ -134,7 +156,7 @@ public abstract class FileDetector<T> implements Detector<T> {
     }
 
     /**
-     * 从指定来源重加载对象（周期探测路径：版本短路，激活失败静默降级）
+     * 从指定来源重加载对象（周期探测路径：版本短路，失败条目下轮重试）
      *
      * @param path 来源路径
      * @return 重加载后的条目
@@ -165,7 +187,7 @@ public abstract class FileDetector<T> implements Detector<T> {
                          * 例外：强制重载，或已注册条目处于激活失败状态（版本短路会让失败永远无法被重试）。
                          */
                         final var exist = entries.get(name);
-                        if (!force && null != exist && Objects.equals(exist.version(), version)) {
+                        if (!force && null != exist && !exist.isFailed() && Objects.equals(exist.version(), version)) {
                             return CompletableFuture.completedFuture(exist);
                         }
 
@@ -182,7 +204,7 @@ public abstract class FileDetector<T> implements Detector<T> {
 
                         /*
                          * 激活注册：失败时降级注册（条目携带失败原因照常注册），
-                         * 避免周期扫描对坏配置反复重试，条目保留可见性与文件变更后的自愈能力。
+                         * 条目保留可见性，由周期扫描每轮重试直至激活成功。
                          * completedFuture(null).thenCompose 将子类同步抛出的异常统一转为失败阶段。
                          */
                         return CompletableFuture.completedFuture(null)
@@ -194,14 +216,23 @@ public abstract class FileDetector<T> implements Detector<T> {
                                     if (null != expired) {
                                         IOUtils.closeQuietly(expired);
                                     }
-                                    return entry;
-                                })
-                                .thenApply(entry -> {
-                                    if (null != entry.failure()) {
-                                        logger.warn("{} activate failed, registered as degraded. name={};", this, name, entry.failure());
+
+                                    /*
+                                     * 日志按状态转移收敛：失败条目每轮重试，
+                                     * 相同失败的重复告警降为debug，避免刷屏。
+                                     */
+                                    if (entry.isFailed()) {
+                                        if (entry.sameFailureAs(expired)) {
+                                            logger.debug("{} activate still failed. name={};", this, name, entry.failure());
+                                        } else {
+                                            logger.warn("{} activate failed, registered as degraded. name={};", this, name, entry.failure());
+                                        }
+                                    } else if (null != expired && expired.isFailed()) {
+                                        logger.info("{} activate recovered from failure. name={};", this, name);
                                     } else {
                                         logger.debug("{} register success by reload. name={};", this, name);
                                     }
+
                                     return entry;
                                 });
 
@@ -326,6 +357,24 @@ public abstract class FileDetector<T> implements Detector<T> {
             AutoCloseable resource,
             Throwable failure
     ) implements AutoCloseable {
+
+        /**
+         * @return TRUE|FALSE：激活是否失败
+         */
+        public boolean isFailed() {
+            return null != failure;
+        }
+
+        /**
+         * 判断与另一条目的激活失败原因是否相同
+         *
+         * @param other 另一条目（允许为 null）
+         * @return TRUE|FALSE
+         */
+        public boolean sameFailureAs(Entry<?> other) {
+            return null != other
+                    && Objects.equals(String.valueOf(failure), String.valueOf(other.failure));
+        }
 
         @Override
         public void close() {

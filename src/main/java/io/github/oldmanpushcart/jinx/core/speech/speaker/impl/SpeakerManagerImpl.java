@@ -138,12 +138,22 @@ public class SpeakerManagerImpl implements SpeakerManager {
             public void onClosed(Throwable ex) {
                 logger.debug("{} closed.", speaker, ex);
                 speakerRef.compareAndSet(speaker, null);
-                connectF.completeExceptionally(ex);
+                if (null != ex) {
+                    connectF.completeExceptionally(new RuntimeException(
+                            "Speaker occur error! %s".formatted(ex.getMessage()),
+                            ex
+                    ));
+                } else {
+                    connectF.complete(null);
+                }
             }
 
         }).whenComplete((u, ex) -> {
             if (null != ex) {
-                connectF.completeExceptionally(ex);
+                connectF.completeExceptionally(new RuntimeException(
+                        "Speaker connect occur error! %s".formatted(ex.getMessage()),
+                        ex
+                ));
             }
         })
         ;

@@ -37,7 +37,7 @@ jinx/
 │   ├── mcp/        # MCP 服务配置：{name}.mcp.json
 │   ├── skills/     # SKILL 技能定义：{name}/SKILL.md
 │   ├── cron/       # 定时任务配置：{name}.cron.json
-│   ├── prompts/    # 提示词：{preparation|interaction}/{name}.md（人格、用户档案等）
+│   ├── prompts/    # 提示词：{name}.md（人格、用户档案等）
 │   └── session/    # 会话记录
 ├── logs/           # 日志（jinx.log、dashscope4j.log，按天滚动）
 ├── work/           # Agent 工作空间

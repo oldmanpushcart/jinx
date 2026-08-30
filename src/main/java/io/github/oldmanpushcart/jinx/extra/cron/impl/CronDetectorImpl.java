@@ -7,9 +7,7 @@ import io.github.oldmanpushcart.dashscope4j.client.util.jackson.JacksonJsonUtils
 import io.github.oldmanpushcart.jinx.core.detector.FileDetector;
 import io.github.oldmanpushcart.jinx.extra.cron.CronDetector;
 import io.github.oldmanpushcart.jinx.extra.cron.CronMeta;
-import io.micronaut.scheduling.annotation.Scheduled;
 import io.micronaut.scheduling.cron.CronExpression;
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import jakarta.inject.Singleton;
 import org.slf4j.Logger;
@@ -49,20 +47,10 @@ class CronDetectorImpl extends FileDetector<CronMeta> implements CronDetector {
         this.agent = agent;
     }
 
-    @PostConstruct
-    void init() {
-        detectQuietly("init");
-    }
-
     @PreDestroy
     void destroy() {
         scheduler.shutdownNow();
         entries.values().forEach(IOUtils::closeQuietly);
-    }
-
-    @Scheduled(fixedDelay = "10s")
-    void scan() {
-        detectQuietly("scan");
     }
 
     @Override

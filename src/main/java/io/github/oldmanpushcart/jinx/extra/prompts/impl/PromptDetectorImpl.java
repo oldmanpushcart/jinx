@@ -2,9 +2,9 @@ package io.github.oldmanpushcart.jinx.extra.prompts.impl;
 
 import io.github.oldmanpushcart.jinx.Constants;
 import io.github.oldmanpushcart.jinx.core.detector.FileDetector;
-import io.github.oldmanpushcart.jinx.extra.prompts.PromptMeta;
 import io.github.oldmanpushcart.jinx.extra.prompts.PromptDetector;
-import io.github.oldmanpushcart.jinx.extra.prompts.PromptPhase;
+import io.github.oldmanpushcart.jinx.extra.prompts.PromptMeta;
+import jakarta.inject.Singleton;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,37 +16,27 @@ import java.util.concurrent.CompletionStage;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * 提示词文件探测器
+ * 提示词探测器
  * <p>
- * 扫描{@code {jinx.data}/prompts/{stage}}目录，将每个{@code *.md}文件解析为一条提示词。
- * 提示词内容为静态文本，不做任何变量替换。
+ * 扫描{@code {jinx.data}/prompts}目录，将每个{@code *.md}文件解析为一条提示词。
+ * 提示词内容为静态文本，不做任何变量替换，在每次智能体对话时植入上下文。
  * </p>
  */
-abstract class PromptFileDetector extends FileDetector<PromptMeta> implements PromptDetector {
+@Singleton
+class PromptDetectorImpl extends FileDetector<PromptMeta> implements PromptDetector {
 
     private static final String EXTENSION = ".md";
 
-    private final PromptPhase phase;
-
-    protected PromptFileDetector(PromptPhase phase) {
-        this.phase = phase;
-    }
-
-    @Override
-    public PromptPhase phase() {
-        return phase;
-    }
-
     @Override
     public String toString() {
-        return "jinx://prompts/%s/detector".formatted(phase.directory());
+        return "jinx://prompts/detector";
     }
 
     // ---- FileDetector钩子实现 ----
 
     @Override
     protected Path directory() {
-        return Constants.DATA.resolve("prompts").resolve(phase.directory());
+        return Constants.DATA.resolve("prompts");
     }
 
     @Override

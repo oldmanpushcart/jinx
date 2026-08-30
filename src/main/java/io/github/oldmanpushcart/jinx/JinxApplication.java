@@ -32,8 +32,10 @@ public class JinxApplication implements AutoCloseable {
             List.of(
                     Constants.CONF,
                     Constants.DATA,
-                    Constants.DATA.resolve("prompts/preparation"),
-                    Constants.DATA.resolve("prompts/interaction"),
+                    Constants.DATA.resolve("prompts"),
+                    Constants.DATA.resolve("cron"),
+                    Constants.DATA.resolve("mcp"),
+                    Constants.DATA.resolve("skills"),
                     Constants.LOGS,
                     Constants.WORK
             ).forEach(path -> {

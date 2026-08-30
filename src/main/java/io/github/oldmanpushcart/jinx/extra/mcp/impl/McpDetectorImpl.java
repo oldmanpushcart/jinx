@@ -10,7 +10,6 @@ import io.github.oldmanpushcart.dashscope4j.client.util.jackson.JacksonJsonUtils
 import io.github.oldmanpushcart.jinx.core.detector.FileDetector;
 import io.github.oldmanpushcart.jinx.extra.mcp.McpDetector;
 import io.github.oldmanpushcart.jinx.extra.mcp.McpMeta;
-import io.micronaut.scheduling.annotation.Scheduled;
 import io.modelcontextprotocol.client.transport.HttpClientSseClientTransport;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
 import io.modelcontextprotocol.client.transport.ServerParameters;
@@ -18,15 +17,15 @@ import io.modelcontextprotocol.client.transport.StdioClientTransport;
 import io.modelcontextprotocol.json.McpJsonMapper;
 import io.modelcontextprotocol.json.jackson2.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.spec.McpClientTransport;
-import jakarta.annotation.PostConstruct;
 import jakarta.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -38,23 +37,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @Singleton
 class McpDetectorImpl extends FileDetector<McpMeta> implements McpDetector {
 
+    private static final Logger logger = LoggerFactory.getLogger(McpDetectorImpl.class);
+
     private static final String MCP_FILE_SUFFIX = ".mcp.json";
     private static final Pattern PLACEHOLDER = Pattern.compile("\\$\\{([^}]+)}");
+    private static final String ENV_PREFIX = "env.";
+    private static final String PROPERTY_PREFIX = "property.";
 
     private final Toolbox toolbox;
 
     public McpDetectorImpl(Toolbox toolbox) {
         this.toolbox = toolbox;
-    }
-
-    @PostConstruct
-    void init() {
-        detectQuietly("init");
-    }
-
-    @Scheduled(fixedDelay = "10s")
-    void scan() {
-        detectQuietly("scan");
     }
 
     @Override
@@ -102,7 +95,7 @@ class McpDetectorImpl extends FileDetector<McpMeta> implements McpDetector {
     @Override
     protected McpMeta parse(Path path) throws IOException {
         final var rawMcpJson = Files.readString(path, UTF_8);
-        final var mcpJson = replaceHolder(rawMcpJson, System.getenv());
+        final var mcpJson = replaceHolder(rawMcpJson, System::getProperty, System::getenv);
         return JacksonJsonUtils.toObject(mcpJson, McpMeta.class);
     }
 
@@ -153,24 +146,67 @@ class McpDetectorImpl extends FileDetector<McpMeta> implements McpDetector {
 
     /**
      * 占位符替换
+     * <p>
+     * {@code ${XXX}}：先查property，再查env；
+     * {@code ${env.XXX}}：只查env；
+     * {@code ${property.XXX}}：只查property。
+     * 未命中的占位符保留原文。
      *
-     * @param string    原始字符串
-     * @param variables 变量表
+     * @param string   原始字符串
+     * @param property property查找函数
+     * @param env      env查找函数
      * @return 替换后的字符串
      */
-    private static String replaceHolder(String string, Map<String, String> variables) {
-        if (string == null || variables == null || variables.isEmpty()) {
+    private static String replaceHolder(String string, Function<String, String> property, Function<String, String> env) {
+        if (null == string) {
             return string;
         }
         final var matcher = PLACEHOLDER.matcher(string);
         final var sb = new StringBuilder();
         while (matcher.find()) {
-            final var value = Optional.ofNullable(variables.get(matcher.group(1)))
-                    .orElseGet(matcher::group);
+            final var holder = matcher.group(1);
+            final var resolved = resolveHolder(holder, property, env);
+            if (resolved.isEmpty()) {
+                logger.warn("jinx://mcp/detector unresolved placeholder: {}", holder);
+            }
+            final var value = resolved.orElseGet(matcher::group);
             matcher.appendReplacement(sb, Matcher.quoteReplacement(value));
         }
         matcher.appendTail(sb);
         return sb.toString();
+    }
+
+    /**
+     * 按占位符前缀路由到对应查找源
+     *
+     * @param holder   占位符表达式（不含${}）
+     * @param property property查找函数
+     * @param env      env查找函数
+     * @return 查找结果（未命中为空）
+     */
+    private static Optional<String> resolveHolder(String holder, Function<String, String> property, Function<String, String> env) {
+        if (holder.startsWith(ENV_PREFIX)) {
+            return lookup(env, holder.substring(ENV_PREFIX.length()));
+        }
+        if (holder.startsWith(PROPERTY_PREFIX)) {
+            return lookup(property, holder.substring(PROPERTY_PREFIX.length()));
+        }
+        return lookup(property, holder)
+                .or(() -> lookup(env, holder));
+    }
+
+    /**
+     * 从查找源取值，空key视为未命中，命中值为空串也视为已命中。
+     *
+     * @param source 查找函数
+     * @param key    键
+     * @return 查找结果（未命中为空）
+     */
+    private static Optional<String> lookup(Function<String, String> source, String key) {
+        if (key.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(source.apply(key));
     }
 
     /**
