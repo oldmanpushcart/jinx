@@ -32,3 +32,5 @@ release-*/
 ## runtime data
 data/session/
 data/embedding-tool-indexer.jsonl
+data/prompts/USER.md
+
