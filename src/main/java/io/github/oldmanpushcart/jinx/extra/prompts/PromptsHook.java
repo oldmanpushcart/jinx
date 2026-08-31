@@ -6,6 +6,7 @@ import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.ChatModel;
 import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.message.Message;
 import io.github.oldmanpushcart.dashscope4j.client.api.AigcRequest;
 import io.github.oldmanpushcart.dashscope4j.client.api.interceptor.ChatInterceptor;
+import io.github.oldmanpushcart.dashscope4j.client.util.CommonUtils;
 import jakarta.inject.Singleton;
 
 import java.util.Comparator;
@@ -39,9 +40,17 @@ class PromptsHook implements PreparationHook, ChatInterceptor {
         // 按名称排序，过滤空白内容，每条提示词仅植入一次
         final var systems = detector.list().stream()
                 .sorted(Comparator.comparing(PromptMeta::name))
-                .map(PromptMeta::content)
-                .filter(content -> !content.isBlank())
-                .map(content -> Message.system(content).withCache())
+                .filter(meta -> CommonUtils.isNotBlankString(meta.content()))
+                .map(meta -> Message
+                        .system("""
+                                > %s
+                                
+                                %s
+                                """.formatted(
+                                meta.path().toAbsolutePath(),
+                                meta.content()
+                        ))
+                        .withCache())
                 .toList();
 
         if (systems.isEmpty()) {

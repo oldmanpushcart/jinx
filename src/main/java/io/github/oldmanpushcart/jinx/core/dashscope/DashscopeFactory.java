@@ -18,12 +18,20 @@ import okhttp3.OkHttpClient;
 import java.time.Duration;
 import java.util.List;
 
+import static io.github.oldmanpushcart.dashscope4j.client.Constants.MULTIMODAL_GENERATION_PATH;
+
 @Factory
 public class DashscopeFactory {
 
     private static final Interceptor retryInterceptor = RetryInterceptor.newBuilder()
             .strategy(RetryStrategies.fixedDelay(Duration.ofSeconds(5), 5))
             .build();
+
+    @Singleton
+    public ChatModel makeChatModel() {
+        return ChatModel.of("qwen3.8-flash", MULTIMODAL_GENERATION_PATH)
+                .parameter("enable_thinking", false);
+    }
 
     @Singleton
     public DashscopeClient makeDashscopeClient(DashscopeConfig.Client clientCfg) {
@@ -51,30 +59,36 @@ public class DashscopeFactory {
     }
 
     @Singleton
-    public Agent makeDashscopeAgent(DashscopeConfig.Agent agentCfg, DashscopeClient client, List<Hook> hooks) {
+    public Agent makeDashscopeAgent(
+            final DashscopeConfig.Agent agentCfg,
+            final DashscopeClient client,
+            final ChatModel model,
+            final List<Hook> hooks) {
         return ReActAgent.newBuilder()
                 .name(agentCfg.name())
                 .description(agentCfg.description())
                 .client(client)
                 .hooks(hooks)
-                .model(ChatModel.QWEN_FLASH)
+                .model(model)
                 .build();
     }
 
     @Singleton
-    public SessionHook makeSessionHook() {
+    public SessionHook makeSessionHook(
+            final ChatModel model
+    ) {
         return SessionHook.newBuilder()
                 .storage(FileFragmentStorage.newBuilder()
                         .directory(Constants.DATA.resolve("session"))
                         .build())
-                // 1M
-                .maxTokens(1000 * 1000)
+                // 500K
+                .maxTokens(500 * 1000)
 
                 // 70%触发压缩
                 .gcRatio(0.7)
 
                 // 压缩模型
-                .model(ChatModel.QWEN_FLASH)
+                .model(model)
 
                 .build();
     }

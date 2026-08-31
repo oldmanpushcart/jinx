@@ -58,7 +58,7 @@ class PromptDetectorImpl extends FileDetector<PromptMeta> implements PromptDetec
 
     @Override
     protected PromptMeta parse(Path path) throws IOException {
-        return new PromptMeta(nameOf(path), Files.readString(path, UTF_8));
+        return new PromptMeta(path, nameOf(path), Files.readString(path, UTF_8));
     }
 
     @Override

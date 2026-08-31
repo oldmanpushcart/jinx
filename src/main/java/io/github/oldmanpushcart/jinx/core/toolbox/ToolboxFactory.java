@@ -5,8 +5,8 @@ import io.github.oldmanpushcart.dashscope4j.agent.toolbox.HashMapToolbox;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.Toolbox;
 import io.github.oldmanpushcart.dashscope4j.agent.toolbox.indexer.EmbeddingToolIndexer;
 import io.github.oldmanpushcart.dashscope4j.agent.toolkit.system.RuntimeToolkit;
-import io.github.oldmanpushcart.dashscope4j.agent.toolkit.system.ShellToolkit;
 import io.github.oldmanpushcart.dashscope4j.client.DashscopeClient;
+import io.github.oldmanpushcart.dashscope4j.client.aigc.chat.ChatModel;
 import io.github.oldmanpushcart.jinx.Constants;
 import io.micronaut.context.annotation.Factory;
 import jakarta.inject.Singleton;
@@ -19,11 +19,15 @@ import java.util.stream.StreamSupport;
 class ToolboxFactory {
 
     @Singleton
-    public Toolbox makeToolbox(DashscopeClient client) {
+    public Toolbox makeToolbox(
+            final DashscopeClient client,
+            final ChatModel model
+    ) {
         return HashMapToolbox.newBuilder()
                 .indexer(EmbeddingToolIndexer.newBuilder()
                         .storage(Constants.DATA.resolve("embedding-tool-indexer.jsonl"))
                         .client(client)
+                        .model(model)
                         .build())
                 .syncInterval(Duration.ofSeconds(3))
                 .build();
